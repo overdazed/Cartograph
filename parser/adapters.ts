@@ -62,12 +62,17 @@ export const nextAdapter: FrameworkAdapter = {
     const p = filePath.toLowerCase();
     const base = (filePath.split("/").pop() ?? "").toLowerCase();
     const name = base.replace(/\.[^.]+$/, "");
-    if (name === "middleware") return "Next.js middleware";
+    if (name === "middleware" && (/^middleware\./.test(base) || /^src\/middleware\./.test(p))) {
+      return "Next.js middleware";
+    }
     if (name === "next.config" || base.startsWith("next.config.")) return "Next.js config";
-    if (/(^|\/)(app|pages)(\/|$)/.test(p)) {
+    if (/(^|\/)app(\/|$)/.test(p)) {
       if (["page", "layout", "template", "loading", "error", "not-found", "route", "default"].includes(name)) {
         return "Next.js route entry";
       }
+      return null;
+    }
+    if (/(^|\/)pages(\/|$)/.test(p)) {
       return "Next.js route";
     }
     return null;

@@ -2,7 +2,7 @@
   "version": 2,
   "root": "N:\\Web Dev\\excalidraw",
   "adapter": "fallback",
-  "generatedAt": "2026-11-05T20:31:33.925Z",
+  "generatedAt": "2026-11-05T22:09:48.860Z",
   "files": [
     {
       "path": "dev-docs/babel.config.js",
@@ -10,7 +10,7 @@
       "lines": 3,
       "hash": "543f91b48879d760be7a7c722f9fa482e471d6c197418ce6f77d1c058e28914d",
       "role": null,
-      "entryReason": null,
+      "entryReason": "config file",
       "fanIn": 0,
       "fanOut": 0
     },
@@ -20,7 +20,7 @@
       "lines": 178,
       "hash": "9b55059ee4e201e33ec59468a7d55cd6cada7ad594aa6ef382b94f08aef19d34",
       "role": null,
-      "entryReason": "Docusaurus config",
+      "entryReason": "config file",
       "fanIn": 0,
       "fanOut": 0
     },
@@ -110,7 +110,7 @@
       "lines": 12,
       "hash": "9e2516116ce70e858596c53a42965d6d9ac5ff6b84c42ffb1a89c7771ce71894",
       "role": null,
-      "entryReason": "Next.js config",
+      "entryReason": "config file",
       "fanIn": 0,
       "fanOut": 0
     },
