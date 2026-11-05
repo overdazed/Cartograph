@@ -182,12 +182,14 @@ export async function storeParseResult(
     fileIdByPath.set(row.path as string, row.id as string);
   }
 
-  const edgePayload = result.edges.map((edge) => ({
-    source_path: edge.from,
-    target_path: edge.to,
-    kind: edge.kind,
-    type_only: edge.typeOnly,
-  }));
+  const edgePayload = result.edges
+    .filter((edge) => fileIdByPath.has(edge.from) && fileIdByPath.has(edge.to))
+    .map((edge) => ({
+      source_path: edge.from,
+      target_path: edge.to,
+      kind: edge.kind,
+      type_only: edge.typeOnly,
+    }));
   const { error: edgeError } = await client.rpc("insert_analysis_edges", {
     p_analysis_id: analysisId,
     p_organization_id: organizationId,
