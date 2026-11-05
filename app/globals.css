@@ -22,51 +22,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
-
-/* Theme toggle (Uiverse) */
-.theme-toggle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  line-height: 1;
-  background-color: transparent;
-  box-shadow: none;
-}
-
-.theme-toggle__input {
-  display: none;
-}
-
-.theme-toggle__icon {
-  grid-column: 1 / 1;
-  grid-row: 1 / 1;
-  transition: transform 500ms;
-  line-height: 0.1;
-}
-
-.theme-toggle__icon--moon {
-  transition-delay: 200ms;
-}
-
-.theme-toggle__icon--sun {
-  transform: scale(0);
-}
-
-.theme-toggle__input:checked + .theme-toggle__icon--moon {
-  transform: rotate(360deg) scale(0);
-}
-
-.theme-toggle__input:checked ~ .theme-toggle__icon--sun {
-  transition-delay: 200ms;
-  transform: scale(1) rotate(360deg);
+  font-family: Arial, Helvetica, sans-serif;
 }
