@@ -14,7 +14,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
 
-import { sampleParseResult } from "@/lib/sample-data";
+import type { ParseResult } from "@/parser/types";
 import {
   buildFoldedNodes,
   foldDirectories,
@@ -27,6 +27,7 @@ const MAX_ROWS = Infinity;
 const MAX_PANEL_HEIGHT = 360;
 
 type MapCanvasProps = {
+  data: ParseResult;
   selected: string | null;
   onSelect: (id: string | null) => void;
   hovered: string | null;
@@ -195,9 +196,8 @@ function FolderNode({ data }: { data: FolderData }) {
 
 const nodeTypes = { folder: FolderNode };
 
-function Inner({ selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
+function Inner({ data, selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
   const updateNodeInternals = useUpdateNodeInternals();
-  const data = sampleParseResult;
 
   const surviving = useMemo(() => foldDirectories(data.files), [data]);
   const survivingSet = useMemo(() => new Set(surviving), [surviving]);
@@ -618,10 +618,10 @@ const connectedNodes = useMemo(() => {
   );
 }
 
-export function MapCanvas({ selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
+export function MapCanvas({ data, selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
   return (
     <ReactFlowProvider>
-      <Inner selected={selected} onSelect={onSelect} hovered={hovered} onHover={onHover} activeCategory={activeCategory} />
+      <Inner data={data} selected={selected} onSelect={onSelect} hovered={hovered} onHover={onHover} activeCategory={activeCategory} />
     </ReactFlowProvider>
   );
 }

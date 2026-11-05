@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { sampleParseResult } from "@/lib/sample-data";
+import type { ParseResult } from "@/parser/types";
 import { MapCanvas } from "@/components/map/map-canvas";
 import { DetailPane } from "@/components/map/detail-pane";
 
@@ -17,15 +17,24 @@ const CATEGORY_COLORS = [
   "#f97316",
 ];
 
-export function CanvasShell() {
+type CanvasShellProps = { data: ParseResult };
+
+export function CanvasShell({ data }: CanvasShellProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"structure" | "explanation">("structure");
+  const coveragePercent =
+    data.coverage.totalImports === 0
+      ? 100
+      : (data.coverage.resolvedInternal / data.coverage.totalImports) * 100;
+  const showBanner = coveragePercent < 95;
+
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [bannerCollapsed, setBannerCollapsed] = useState(false);
 
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const file of sampleParseResult.files) {
+    for (const file of data.files) {
       const ext = file.path.slice(file.path.lastIndexOf(".")).toLowerCase();
       const name = ext || "other";
       counts.set(name, (counts.get(name) ?? 0) + 1);
@@ -37,7 +46,7 @@ export function CanvasShell() {
         color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
       }))
       .sort((a, b) => b.count - a.count);
-  }, []);
+  }, [data]);
 
   return (
     <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden text-xs">
@@ -62,13 +71,27 @@ export function CanvasShell() {
           </button>
         ))}
         <div className="mt-auto px-1 py-1 font-mono text-[10px] text-zinc-500">
-          {sampleParseResult.summary.filesParsed} files
+          {data.summary.filesParsed} files
         </div>
       </aside>
 
       {/* Middle: map */}
       <main className="relative min-w-0 flex-1">
+        {showBanner ? (
+          <div className="border-b border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+            <button
+              type="button"
+              className="font-mono"
+              onClick={() => setBannerCollapsed((v) => !v)}
+            >
+              {bannerCollapsed ? "Partial graph" : "Partial graph —"}{" "}
+              {coveragePercent.toFixed(0)}% of imports resolved
+              {bannerCollapsed ? "" : ` (${data.coverage.unresolved} unresolved)`}
+            </button>
+          </div>
+        ) : null}
         <MapCanvas
+          data={data}
           selected={selected}
           onSelect={setSelected}
           hovered={hovered}
@@ -80,7 +103,7 @@ export function CanvasShell() {
       {/* Right pane: detail */}
       <aside className="w-80 shrink-0 border-l border-zinc-200 dark:border-zinc-800">
         <DetailPane
-          data={sampleParseResult}
+          data={data}
           selected={selected}
           onSelect={setSelected}
           hovered={hovered}

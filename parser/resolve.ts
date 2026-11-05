@@ -18,7 +18,7 @@ function findNearestConfig(startDir: string, root: string): string | null {
   let dir = startDir;
   while (true) {
     for (const name of ["tsconfig.json", "jsconfig.json"]) {
-      const candidate = path.join(dir, name);
+      const candidate = path.join(/*turbopackIgnore: true*/ dir, name);
       if (fs.existsSync(candidate)) return candidate;
     }
     if (dir === root) break;
