@@ -1,4 +1,4 @@
-import { ClerkProvider, OrganizationSwitcher, Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { ClerkProvider, Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
@@ -51,21 +51,27 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col">
         <ClerkProvider
-          signInFallbackRedirectUrl="/dashboard"
-          signUpFallbackRedirectUrl="/dashboard"
+          signInFallbackRedirectUrl="/"
+          signUpFallbackRedirectUrl="/"
+          appearance={{
+            variables: {
+              colorBackground: "var(--background)",
+              colorForeground: "var(--foreground)",
+              colorInputForeground: "var(--foreground)",
+              colorNeutral: "var(--foreground)",
+            },
+          }}
         >
           <header className="flex items-center justify-end gap-2 p-4">
-            <ThemeToggle />
+            <div className="flex items-center">
+              <ThemeToggle />
+            </div>
             <Suspense>
               <Show when="signed-out">
                 <SignInButton />
                 <SignUpButton />
               </Show>
               <Show when="signed-in">
-                <OrganizationSwitcher
-                  hidePersonal
-                  afterSelectOrganizationUrl="/dashboard"
-                />
                 <UserButton />
               </Show>
             </Suspense>
