@@ -6,6 +6,7 @@ export type FileRecord = {
   lines: number;
   hash: string;
   role: string | null;
+  entryReason: string | null;
   fanIn: number;
   fanOut: number;
 };

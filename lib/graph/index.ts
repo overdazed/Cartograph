@@ -167,6 +167,75 @@ export function uniqueLabels(nodes: { id: string; dir: string }[]): Map<string, 
   return result;
 }
 
+export type WalkDirection = "dependents" | "dependencies";
+
+export type WalkResult = { levels: string[][]; beyond: number };
+
+export function transitiveWalkLevels(
+  edges: Edge[],
+  start: string,
+  direction: WalkDirection,
+  maxDepth: number = 2,
+): WalkResult {
+  const seen = new Set<string>([start]);
+  const levels: string[][] = [];
+  let frontier: string[] = [start];
+  for (let level = 0; level < maxDepth; level += 1) {
+    const next: string[] = [];
+    const levelSet = new Set<string>();
+    for (const node of frontier) {
+      const neighbors =
+        direction === "dependents"
+          ? edges.filter((e) => e.to === node).map((e) => e.from)
+          : edges.filter((e) => e.from === node).map((e) => e.to);
+      for (const n of neighbors) {
+        if (n === start) continue;
+        if (seen.has(n)) continue;
+        seen.add(n);
+        levelSet.add(n);
+        next.push(n);
+      }
+    }
+    levels.push([...levelSet].sort());
+    frontier = next;
+    if (frontier.length === 0) {
+      while (levels.length < maxDepth) levels.push([]);
+      // no beyond
+      return { levels, beyond: 0 };
+    }
+  }
+  // count beyond
+  let beyond = 0;
+  const beyondSeen = new Set(seen);
+  let f = frontier;
+  while (f.length > 0) {
+    const next: string[] = [];
+    for (const node of f) {
+      const neighbors =
+        direction === "dependents"
+          ? edges.filter((e) => e.to === node).map((e) => e.from)
+          : edges.filter((e) => e.from === node).map((e) => e.to);
+      for (const n of neighbors) {
+        if (n === start) continue;
+        if (beyondSeen.has(n)) continue;
+        beyondSeen.add(n);
+        beyond += 1;
+        next.push(n);
+      }
+    }
+    f = next;
+  }
+  return { levels, beyond };
+}
+
+export function blastRadius(edges: Edge[], start: string, depth: number = 2): WalkResult {
+  return transitiveWalkLevels(edges, start, "dependents", depth);
+}
+
+export function dependencyChain(edges: Edge[], start: string, depth: number = 2): WalkResult {
+  return transitiveWalkLevels(edges, start, "dependencies", depth);
+}
+
 export function buildEdges(
   edges: Edge[],
   surviving: string[],

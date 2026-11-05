@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import type { ParseResult, FileRecord } from "@/parser/types";
-import { foldDirectories, buildFoldedNodes } from "@/lib/graph";
+import { foldDirectories, buildFoldedNodes, blastRadius, dependencyChain } from "@/lib/graph";
+import { InsightsPanel } from "@/components/map/insights-panel";
 
 type DetailPaneProps = {
   data: ParseResult;
@@ -30,6 +31,7 @@ export function DetailPane({
   activeTab,
   onTabChange,
 }: DetailPaneProps) {
+  const [blastMode, setBlastMode] = useState<"dependents" | "dependencies" | null>(null);
   const fileByPath = useMemo(
     () => new Map(data.files.map((f) => [f.path, f])),
     [data],
@@ -86,6 +88,11 @@ export function DetailPane({
     return [...set].sort();
   }, [data, selected, selectedFile]);
 
+  const blastList = useMemo(() => {
+    if (!selectedFile || !blastMode) return null;
+    const fn = blastMode === "dependents" ? blastRadius : dependencyChain;
+    return fn(data.edges, selected!, 2);
+  }, [selectedFile, blastMode, data, selected]);
   const folderKindCounts = useMemo(() => {
     if (!selectedNode) return [];
     const counts = new Map<string, number>();
@@ -244,6 +251,7 @@ export function DetailPane({
                 No framework adapter applied, so no file was matched to a role.
               </div>
             </div>
+            <InsightsPanel data={data} onSelectFile={onSelect} />
           </div>
         ) : activeTab === "explanation" ? (
           <p className="text-[11px] text-zinc-500">
@@ -275,6 +283,56 @@ export function DetailPane({
                 <span className="text-zinc-500">Depended on by</span>
                 <span className="text-green-600 dark:text-green-400">{dependents.length} files</span>
               </div>
+            </div>
+            <div>
+              <div className="mb-1 flex items-center gap-2 font-mono text-[10px] text-zinc-500">
+                <span>Blast radius / dependency chain (2 levels)</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBlastMode(blastMode === "dependents" ? null : "dependents")}
+                  className={`border px-2 py-1 font-mono text-[10px] ${blastMode === "dependents" ? "border-blue-500 text-blue-600" : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"}`}
+                >
+                  Blast radius
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBlastMode(blastMode === "dependencies" ? null : "dependencies")}
+                  className={`border px-2 py-1 font-mono text-[10px] ${blastMode === "dependencies" ? "border-blue-500 text-blue-600" : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"}`}
+                >
+                  Dependency chain
+                </button>
+              </div>
+              {blastMode && blastList ? (
+                <div className="mt-1 flex flex-col gap-1">
+                  {blastList.levels.every((l) => l.length === 0) ? (
+                    <p className="text-[11px] text-zinc-500">none</p>
+                  ) : (
+                    blastList.levels.map((level, i) =>
+                      level.length === 0 ? null : (
+                        <div key={i} className="flex flex-col gap-0.5">
+                          <div className="font-mono text-[9px] tracking-wide text-zinc-400">
+                            {i + 1} step{i === 0 ? "" : "s"} away · {level.length}
+                          </div>
+                          {level.map((p) => (
+                            <div key={p} className="flex min-w-0 items-center gap-2">
+                              <div className="min-w-0 flex-1 overflow-hidden">
+                                <PathButton path={p} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ),
+                    )
+                  )}
+                  {blastList.beyond > 0 ? (
+                    <div className="font-mono text-[9px] text-zinc-500">
+                      {blastList.beyond} more files further out
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             <div>
               <div className="mb-1 flex items-center justify-between font-mono text-[10px] text-zinc-500">

@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import { walkRepository } from "./walk.ts";
 import { extractImports } from "./extract.ts";
 import { computeFanInOut } from "./graph.ts";
-import { selectAdapter } from "./adapters.ts";
+import { selectAdapter, adapterForFile } from "./adapters.ts";
 import type { Edge, EdgeKind, FileRecord, ParseResult, SkippedFile } from "./types.ts";
 
 function countLines(content: string): number {
@@ -40,12 +40,14 @@ export function parseRepository(rootPath: string): ParseResult {
   const fileRecords = new Map<string, FileRecord>();
   for (const entry of parsed) {
     const folder = path.dirname(entry.path).split(path.sep).join("/");
+    const fileAdapter = adapterForFile(root, entry.path);
     fileRecords.set(entry.path, {
       path: entry.path,
       folder: folder === "." ? "." : folder,
       lines: countLines(entry.content),
       hash: crypto.createHash("sha256").update(entry.content).digest("hex"),
       role: null,
+      entryReason: fileAdapter.entryPoint(entry.path),
       fanIn: 0,
       fanOut: 0,
     });
@@ -126,7 +128,7 @@ export function parseRepository(rootPath: string): ParseResult {
   const folders = new Set(files.map((file) => file.folder)).size;
 
   return {
-    version: 1,
+    version: 2,
     root,
     adapter: adapter.name,
     generatedAt: new Date().toISOString(),

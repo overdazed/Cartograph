@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
-  useReactFlow,
   useUpdateNodeInternals,
   type Node,
   type Edge as RFEdge,
@@ -32,6 +31,7 @@ type MapCanvasProps = {
   onSelect: (id: string | null) => void;
   hovered: string | null;
   onHover: (id: string | null) => void;
+  activeCategory?: string | null;
 };
 
 type FolderData = {
@@ -45,6 +45,8 @@ type FolderData = {
   width: number;
   height: number;
   dimmed: boolean;
+  categoryMatchCount: number;
+  activeCategory: string | null;
   fileStats: Record<string, { fanIn: number; fanOut: number }>;
   connectedFiles: Set<string>;
   selected: string | null;
@@ -113,6 +115,7 @@ function FolderNode({ data }: { data: FolderData }) {
         <div className="truncate font-medium">{d.label}</div>
         <div className="font-mono text-[8px] text-zinc-500">
           {d.fileCount} files · <span className="text-green-600 dark:text-green-400">←{d.fanIn}</span>  <span className="text-amber-600 dark:text-amber-400">{d.fanOut}→</span>
+          {d.activeCategory ? <span className="ml-1 text-blue-600 dark:text-blue-400">{d.categoryMatchCount}/{d.fileCount}</span> : null}
         </div>
         <Handle type="source" position={Position.Right} />
       </div>
@@ -142,6 +145,7 @@ function FolderNode({ data }: { data: FolderData }) {
         <span className="truncate">{d.label}</span>
         <span className="shrink-0 font-mono text-[8px] text-zinc-500">
           {d.fileCount} · <span className="text-green-600 dark:text-green-400">←{d.fanIn}</span>  <span className="text-amber-600 dark:text-amber-400">{d.fanOut}→</span>
+          {d.activeCategory ? <span className="ml-1 text-blue-600 dark:text-blue-400">{d.categoryMatchCount}/{d.fileCount}</span> : null}
         </span>
       </div>
       <div className="relative min-h-[14px] px-2 py-0.5 font-mono text-[10px] text-zinc-500">{above > 0 ? `${above} files above` : ""}
@@ -191,8 +195,7 @@ function FolderNode({ data }: { data: FolderData }) {
 
 const nodeTypes = { folder: FolderNode };
 
-function Inner({ selected, onSelect, hovered, onHover }: MapCanvasProps) {
-  const rf = useReactFlow();
+function Inner({ selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
   const updateNodeInternals = useUpdateNodeInternals();
   const data = sampleParseResult;
 
@@ -201,9 +204,11 @@ function Inner({ selected, onSelect, hovered, onHover }: MapCanvasProps) {
   const nodesInfo = useMemo(() => buildFoldedNodes(data.files, surviving), [data, surviving]);
   const labels = useMemo(() => uniqueLabels(nodesInfo.map((n) => ({ id: n.id, dir: n.dir }))), [nodesInfo]);
   const [open, setOpen] = useState<Set<string>>(new Set());
+  const manualOpenRef = useRef<boolean>(false);
   const [visibilityMap, setVisibilityMap] = useState<Map<string, Map<string, "above" | "below" | "visible">>>(new Map());
   const toggle = useCallback((id: string) => {
-    setOpen((prev) => {
+      manualOpenRef.current = true;
+      setOpen((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -220,6 +225,8 @@ function Inner({ selected, onSelect, hovered, onHover }: MapCanvasProps) {
   const selectFile = useCallback((file: string) => {
     onSelect(selected === file ? null : file);
   }, [selected, onSelect]);
+
+
 
   const autoOpenedRef = useRef<Set<string>>(new Set());
 
@@ -278,7 +285,6 @@ function Inner({ selected, onSelect, hovered, onHover }: MapCanvasProps) {
       window.clearTimeout(t2);
     };
   }, [selected, data.files, data.edges, survivingSet]);
-
 
   const connectedFiles = useMemo(() => {
     const set = new Set<string>();
@@ -413,6 +419,12 @@ const connectedNodes = useMemo(() => {
         height = Math.min(MAX_PANEL_HEIGHT, 20 + visibleRows * 14 + (n.files.length > MAX_ROWS ? 14 : 0) + 2);
       }
       const fileStats = Object.fromEntries(data.files.map((f) => [f.path, { fanIn: f.fanIn, fanOut: f.fanOut }]));
+      const categoryMatchCount = activeCategory
+        ? n.files.filter((p) => {
+            const ext = p.slice(p.lastIndexOf(".")).toLowerCase();
+            return (ext || "other") === activeCategory;
+          }).length
+        : 0;
       const dimmed = false;
       return {
         id: n.id,
@@ -429,6 +441,8 @@ const connectedNodes = useMemo(() => {
           width,
           height,
           dimmed,
+          categoryMatchCount,
+          activeCategory: activeCategory ?? null,
           fileStats,
           connectedFiles: new Set<string>(),
           selected: null,
@@ -452,7 +466,7 @@ const connectedNodes = useMemo(() => {
         height,
       };
     });
-  }, [nodesInfo, open, labels, toggle, selectFile, data.files, updateNodeInternals, onHover, onSelect]);
+  }, [nodesInfo, open, labels, toggle, selectFile, data.files, updateNodeInternals, onHover, onSelect, activeCategory]);
 
   const baseEdges: RFEdge[] = useMemo(() => {
     const seen = new Set<string>();
@@ -499,8 +513,16 @@ const connectedNodes = useMemo(() => {
   }, [structuralNodes, baseEdges]);
 
   const displayNodes = useMemo(() => {
+    const activeNodeIds = new Set<string>();
+    if (activeCategory) {
+      for (const n of layouted.nodes) {
+        if (((n.data as { categoryMatchCount?: number }).categoryMatchCount ?? 0) > 0) activeNodeIds.add(n.id);
+      }
+    }
     return layouted.nodes.map((n) => {
-      const dimmed = selected !== null && !connectedNodes.has(n.id);
+      const selectedDimmed = selected !== null && !connectedNodes.has(n.id);
+      const categoryDimmed = activeCategory !== null && !activeNodeIds.has(n.id);
+      const dimmed = selectedDimmed || categoryDimmed;
       return {
         ...n,
         data: {
@@ -508,10 +530,11 @@ const connectedNodes = useMemo(() => {
           dimmed,
           connectedFiles,
           selected,
+          activeCategory: activeCategory ?? null,
         },
       };
     });
-  }, [layouted.nodes, selected, connectedNodes, connectedFiles]);
+  }, [layouted.nodes, selected, connectedNodes, connectedFiles, activeCategory]);
 
   const hoveredNodes = useMemo(
     () => displayNodes.map((n) => ({ ...n, data: { ...n.data, hovered } })),
@@ -519,6 +542,16 @@ const connectedNodes = useMemo(() => {
   );
 
   const displayEdges: RFEdge[] = useMemo(() => {
+    const categoryNodeIds = new Set<string>();
+    if (activeCategory) {
+      for (const n of nodesInfo) {
+        const match = n.files.some((f) => {
+          const ext = f.slice(f.lastIndexOf(".")).toLowerCase();
+          return (ext || "other") === activeCategory;
+        });
+        if (match) categoryNodeIds.add(n.id);
+      }
+    }
     const seen = new Set<string>();
     const out: RFEdge[] = [];
     for (const e of data.edges) {
@@ -540,7 +573,9 @@ const connectedNodes = useMemo(() => {
         if (incomingEdgeKeys.has(key)) stroke = "#10b981";
         else if (outgoingEdgeKeys.has(key)) stroke = "#f59e0b";
       }
-      const dimmed = selected !== null && !bright;
+      const selectedDimmed = selected !== null && !bright;
+      const categoryDimmed = activeCategory !== null && !(categoryNodeIds.has(fromId) && categoryNodeIds.has(toId));
+      const dimmed = selectedDimmed || categoryDimmed;
       out.push({
         id: key,
         source: fromId,
@@ -551,19 +586,12 @@ const connectedNodes = useMemo(() => {
       });
     }
     return out;
-  }, [data, open, survivingSet, selected, connectedEdgeKeys, incomingEdgeKeys, outgoingEdgeKeys, visibilityMap]);
+  }, [data, open, survivingSet, selected, connectedEdgeKeys, incomingEdgeKeys, outgoingEdgeKeys, visibilityMap, activeCategory, nodesInfo]);
 
   useEffect(() => {
     for (const id of open) updateNodeInternals(id);
   }, [selected, open, visibilityMap, updateNodeInternals]);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const { zoom } = rf.getViewport();
-      rf.fitView({ padding: 0.1, maxZoom: zoom, duration: 200 });
-    }, 50);
-    return () => clearTimeout(t);
-  }, [open, rf]);
 
   return (
     <div className="h-full w-full">
@@ -590,10 +618,10 @@ const connectedNodes = useMemo(() => {
   );
 }
 
-export function MapCanvas({ selected, onSelect, hovered, onHover }: MapCanvasProps) {
+export function MapCanvas({ selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
   return (
     <ReactFlowProvider>
-      <Inner selected={selected} onSelect={onSelect} hovered={hovered} onHover={onHover} />
+      <Inner selected={selected} onSelect={onSelect} hovered={hovered} onHover={onHover} activeCategory={activeCategory} />
     </ReactFlowProvider>
   );
 }

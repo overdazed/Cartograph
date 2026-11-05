@@ -36,6 +36,7 @@ function validateFileRecord(value: unknown, path: string): FileRecord {
     lines: requireNumber(value.lines, `${path}.lines`),
     hash: requireString(value.hash, `${path}.hash`),
     role: value.role === null ? null : requireString(value.role, `${path}.role`),
+    entryReason: value.entryReason === null ? null : requireString(value.entryReason, `${path}.entryReason`),
     fanIn: requireNumber(value.fanIn, `${path}.fanIn`),
     fanOut: requireNumber(value.fanOut, `${path}.fanOut`),
   };
@@ -98,7 +99,7 @@ function validateCoverage(value: unknown): Coverage {
 
 export function validateParseResult(input: unknown): ParseResult {
   if (!isRecord(input)) throw new ParseResultValidationError("result must be an object");
-  if (input.version !== 1) {
+  if (input.version !== 2) {
     throw new ParseResultValidationError(`unsupported version: ${String(input.version)}`);
   }
   if (!Array.isArray(input.files)) throw new ParseResultValidationError("files must be an array");
@@ -109,7 +110,7 @@ export function validateParseResult(input: unknown): ParseResult {
   if (!isRecord(summary)) throw new ParseResultValidationError("summary must be an object");
 
   return {
-    version: 1,
+    version: 2,
     root: requireString(input.root, "root"),
     adapter: requireString(input.adapter, "adapter"),
     generatedAt: requireString(input.generatedAt, "generatedAt"),

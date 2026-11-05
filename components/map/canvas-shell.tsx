@@ -21,6 +21,7 @@ export function CanvasShell() {
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"structure" | "explanation">("structure");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
@@ -46,9 +47,11 @@ export function CanvasShell() {
           Categories
         </div>
         {categories.map((c) => (
-          <div
+          <button
             key={c.name}
-            className="flex items-center gap-2 rounded px-1 py-1 text-zinc-700 dark:text-zinc-300"
+            type="button"
+            onClick={() => setActiveCategory((prev) => (prev === c.name ? null : c.name))}
+            className={`flex w-full items-center gap-2 rounded px-1 py-1 text-left text-zinc-700 dark:text-zinc-300 ${activeCategory === c.name ? "bg-zinc-200 dark:bg-zinc-700" : ""}`}
           >
             <span
               className="h-2.5 w-2.5 shrink-0 rounded-sm"
@@ -56,7 +59,7 @@ export function CanvasShell() {
             />
             <span className="truncate">{c.name}</span>
             <span className="ml-auto font-mono text-zinc-500">{c.count}</span>
-          </div>
+          </button>
         ))}
         <div className="mt-auto px-1 py-1 font-mono text-[10px] text-zinc-500">
           {sampleParseResult.summary.filesParsed} files
@@ -70,6 +73,7 @@ export function CanvasShell() {
           onSelect={setSelected}
           hovered={hovered}
           onHover={setHovered}
+          activeCategory={activeCategory}
         />
       </main>
 
