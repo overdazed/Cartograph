@@ -73,6 +73,18 @@ export function DashboardAnalyses({ initialRows }: { initialRows: Row[] }) {
                   : row,
               ),
             );
+            if (p.status === "complete" || p.status === "failed") {
+              void supabase
+                .from("analyses")
+                .select("id, repository_url, status, stage, stage_message, commit_sha, error, created_at, updated_at")
+                .eq("id", r.id)
+                .single()
+                .then(({ data }) => {
+                  if (data) {
+                    setRows((prev) => prev.map((row) => (row.id === r.id ? (data as Row) : row)));
+                  }
+                });
+            }
           })
           .subscribe((status) => {
             if (status === "SUBSCRIBED") {
