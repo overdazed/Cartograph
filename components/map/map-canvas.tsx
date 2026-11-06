@@ -287,6 +287,7 @@ function Inner({ data, selected, onSelect, hovered, onHover, activeCategory }: M
     };
   }, [selected, data.files, data.edges, survivingSet]);
 
+  const roleByPath = useMemo(() => new Map(data.files.map((f) => [f.path, f.role])), [data]);
   const connectedFiles = useMemo(() => {
     const set = new Set<string>();
     if (!selected) return set;
@@ -422,8 +423,7 @@ const connectedNodes = useMemo(() => {
       const fileStats = Object.fromEntries(data.files.map((f) => [f.path, { fanIn: f.fanIn, fanOut: f.fanOut }]));
       const categoryMatchCount = activeCategory
         ? n.files.filter((p) => {
-            const fileRec = data.files.find((f) => f.path === p);
-            const role = fileRec?.role;
+            const role = roleByPath.get(p) ?? null;
             const key = role && ALL_FRAMEWORK_CATEGORIES.includes(role) ? role : "Unclassified";
             return (key || "Unclassified") === activeCategory;
           }).length
@@ -469,7 +469,7 @@ const connectedNodes = useMemo(() => {
         height,
       };
     });
-  }, [nodesInfo, open, labels, toggle, selectFile, data.files, updateNodeInternals, onHover, onSelect, activeCategory]);
+  }, [nodesInfo, open, labels, toggle, selectFile, data.files, updateNodeInternals, onHover, onSelect, activeCategory, roleByPath]);
 
   const baseEdges: RFEdge[] = useMemo(() => {
     const seen = new Set<string>();
@@ -549,8 +549,7 @@ const connectedNodes = useMemo(() => {
     if (activeCategory) {
       for (const n of nodesInfo) {
         const match = n.files.some((f) => {
-          const fileRec = data.files.find((x) => x.path === f);
-          const role = fileRec?.role;
+          const role = roleByPath.get(f) ?? null;
           const key = role && ALL_FRAMEWORK_CATEGORIES.includes(role) ? role : "Unclassified";
           return (key || "Unclassified") === activeCategory;
         });
@@ -591,7 +590,7 @@ const connectedNodes = useMemo(() => {
       });
     }
     return out;
-  }, [data, open, survivingSet, selected, connectedEdgeKeys, incomingEdgeKeys, outgoingEdgeKeys, visibilityMap, activeCategory, nodesInfo]);
+  }, [data, open, survivingSet, selected, connectedEdgeKeys, incomingEdgeKeys, outgoingEdgeKeys, visibilityMap, activeCategory, nodesInfo, roleByPath]);
 
   useEffect(() => {
     for (const id of open) updateNodeInternals(id);

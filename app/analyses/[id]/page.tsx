@@ -22,6 +22,8 @@ type AnalysisRow = {
   files_parsed: number | null;
   imports_total: number | null;
   imports_resolved: number | null;
+  imports_resolved_external: number | null;
+  imports_excluded: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -31,35 +33,42 @@ async function loadAnalysis(id: string) {
   const { data: analysis, error: aErr } = await supabase
     .from("analyses")
     .select(
-      "id, repository_url, status, stage, stage_message, commit_sha, error, adapter, files_found, files_parsed, imports_total, imports_resolved, created_at, updated_at",
+      "id, repository_url, status, stage, stage_message, commit_sha, error, adapter, files_found, files_parsed, imports_total, imports_resolved, imports_resolved_external, imports_excluded, created_at, updated_at",
     )
     .eq("id", id)
     .maybeSingle();
   if (aErr || !analysis) return null;
 
-  const { data: files } = await supabase
-    .from("files")
-    .select("path, folder, line_count, content_hash")
-    .eq("analysis_id", id);
+  const fetchAll = async <T,>(table: string, columns: string): Promise<T[]> => {
+    const rows: T[] = [];
+    let from = 0;
+    while (true) {
+      const { data } = await supabase
+        .from(table)
+        .select(columns)
+        .eq("analysis_id", id)
+        .range(from, from + 999)
+        .order("id", { ascending: true });
+      if (!data || data.length === 0) break;
+      rows.push(...(data as T[]));
+      if (data.length < 1000) break;
+      from += 1000;
+    }
+    return rows;
+  };
 
-  const { data: edges } = await supabase
-    .from("edges")
-    .select("source_path, target_path, kind, type_only")
-    .eq("analysis_id", id);
-
-  const { data: roleRows } = await supabase
-    .from("file_roles")
-    .select("file_path, role")
-    .eq("analysis_id", id);
-
-  const { data: routeRows } = await supabase
-    .from("routes")
-    .select("method, path, file_path")
-    .eq("analysis_id", id);
+  const files = await fetchAll<{ path: string; folder: string | null; line_count: number | null; content_hash: string | null; entry_reason: string | null }>("files", "path, folder, line_count, content_hash, entry_reason");
+  const edges = await fetchAll<{ source_path: string; target_path: string; kind: string; type_only: boolean | null }>("edges", "source_path, target_path, kind, type_only");
+  const roleRows = await fetchAll<{ file_path: string; role: string }>("file_roles", "file_path, role");
+  const routeRows = await fetchAll<{ method: string; path: string; file_path: string }>("routes", "method, path, file_path");
 
   const fanIn = new Map<string, number>();
   const fanOut = new Map<string, number>();
-  for (const e of edges ?? []) {
+  const seenPairs = new Set<string>();
+  for (const e of edges) {
+    const pair = `${e.source_path}\u0000${e.target_path}`;
+    if (seenPairs.has(pair)) continue;
+    seenPairs.add(pair);
     fanOut.set(e.source_path, (fanOut.get(e.source_path) ?? 0) + 1);
     fanIn.set(e.target_path, (fanIn.get(e.target_path) ?? 0) + 1);
   }
@@ -73,7 +82,7 @@ async function loadAnalysis(id: string) {
     lines: (f.line_count as number) ?? 0,
     hash: (f.content_hash as string) ?? "",
     role: roleByPath.get(f.path as string) ?? null,
-    entryReason: null,
+    entryReason: (f.entry_reason as string) ?? null,
     fanIn: fanIn.get(f.path as string) ?? 0,
     fanOut: fanOut.get(f.path as string) ?? 0,
   }));
@@ -84,7 +93,7 @@ async function loadAnalysis(id: string) {
     filePath: r.file_path as string,
   }));
 
-  const edgeRecords: Edge[] = (edges ?? []).map((e) => ({
+  const edgeRecords: Edge[] = edges.map((e) => ({
     from: e.source_path as string,
     to: e.target_path as string,
     kind: e.kind as Edge["kind"],
@@ -93,7 +102,10 @@ async function loadAnalysis(id: string) {
 
   const folders = new Set(fileRecords.map((f) => f.folder)).size;
   const totalImports = (analysis as AnalysisRow).imports_total ?? 0;
+  const externalImports = (analysis as AnalysisRow).imports_resolved_external ?? 0;
+  const excludedImports = (analysis as AnalysisRow).imports_excluded ?? 0;
   const resolvedInternal = (analysis as AnalysisRow).imports_resolved ?? 0;
+  const unresolvedImportsCount = Math.max(0, totalImports - resolvedInternal - externalImports - excludedImports);
 
   const parseResult: ParseResult = {
     version: 3,
@@ -107,9 +119,9 @@ async function loadAnalysis(id: string) {
     coverage: {
       totalImports,
       resolvedInternal,
-      resolvedExternal: 0,
-      excluded: 0,
-      unresolved: Math.max(0, totalImports - resolvedInternal),
+      resolvedExternal: externalImports,
+      excluded: excludedImports,
+      unresolved: unresolvedImportsCount,
       reexportsFound: 0,
       reexportsResolved: 0,
       unresolvedImports: [],

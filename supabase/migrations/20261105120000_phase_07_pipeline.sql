@@ -1,12 +1,19 @@
 -- Phase 7: pipeline support
 
--- Delete seed data
-delete from public.analyses;
-delete from public.projects;
+-- Resolve duplicate project_id values before enforcing one analysis per project,
+-- keeping the newest analysis for each project.
+delete from public.analyses a
+using public.analyses b
+where a.project_id = b.project_id
+  and a.created_at < b.created_at;
 
 -- unique constraint: one analysis per project (repository)
 alter table public.analyses
   add constraint analyses_one_per_project unique (project_id);
+
+-- unique constraint: one project per organization and repository URL
+alter table public.projects
+  add constraint projects_org_url_unique unique (organization_id, repository_url);
 
 -- Trigger function that publishes stage + message to the per-analysis channel.
 create or replace function public.publish_analysis_progress()

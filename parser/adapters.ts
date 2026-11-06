@@ -93,7 +93,7 @@ export const nextAdapter: FrameworkAdapter = {
       }
       return null;
     }
-    if (/(^|\/)pages(\/|$)/.test(p)) {
+    if (/^(src\/)?pages(\/|$)/.test(p)) {
       return "Next.js route";
     }
     return null;
@@ -108,7 +108,7 @@ export const nextAdapter: FrameworkAdapter = {
       if (name === "layout") return "Layouts";
       if (["loading", "error", "not-found", "template", "default"].includes(name)) return "Loading & error UI";
     }
-    if (/(^|\/)pages(\/|$)/.test(p)) {
+    if (/^(src\/)?pages(\/|$)/.test(p)) {
       if (/(^|\/)pages\/api(\/|$)/.test(p)) return "API endpoints";
       return "Page routes";
     }
@@ -138,12 +138,18 @@ export const nextAdapter: FrameworkAdapter = {
     }
     if (methods.length === 0) return [];
     const parts = filePath.split("/");
-    let appIndex = parts.findIndex((seg) => seg.toLowerCase() === "app");
+    let appIndex = -1;
+    const appIndices = parts
+      .map((seg, i) => (seg.toLowerCase() === "app" ? i : -1))
+      .filter((i) => i >= 0);
+    const srcAppIndex = appIndices.find((i) => i > 0 && parts[i - 1]?.toLowerCase() === "src");
+    if (srcAppIndex !== undefined) appIndex = srcAppIndex;
+    else if (appIndices.length > 0) appIndex = appIndices[0];
+    if (appIndex === -1) return [];
     if (appIndex === -1) {
       const srcIndex = parts.findIndex((seg) => seg.toLowerCase() === "src");
       if (srcIndex !== -1 && parts[srcIndex + 1]?.toLowerCase() === "app") appIndex = srcIndex + 1;
     }
-    if (appIndex === -1) return [];
     const segments = parts
       .slice(appIndex + 1, -1)
       .filter((seg) => !/^\(.*\)$/.test(seg));
@@ -190,7 +196,7 @@ export const nestAdapter: FrameworkAdapter = {
       const ctrlArg = controllerDec.getArguments()[0];
       let prefix = "";
       if (ctrlArg) {
-        if (!ctrlArg.isKind(SyntaxKind.StringLiteral)) return [];
+        if (!ctrlArg.isKind(SyntaxKind.StringLiteral)) continue;
         prefix = ctrlArg.getLiteralValue();
       }
       for (const method of cls.getMethods()) {
@@ -223,11 +229,7 @@ export const reactAdapter: FrameworkAdapter = {
   },
   extraExcludedDirs: () => [],
   entryPoint: (filePath: string) => commonEntryReason(filePath),
-  role: (filePath: string) => {
-    const idx = filePath.lastIndexOf(".");
-    const ext = idx === -1 ? "" : filePath.slice(idx).toLowerCase();
-    return ext || "other";
-  },
+  role: (filePath: string, content?: string) => fallbackAdapter.role(filePath, content),
   routes: () => [],
 };
 
@@ -250,11 +252,7 @@ export const docusaurusAdapter: FrameworkAdapter = {
     if (name === "index" && p.includes("/pages/")) return "Docusaurus page";
     return null;
   },
-  role: (filePath: string) => {
-    const idx = filePath.lastIndexOf(".");
-    const ext = idx === -1 ? "" : filePath.slice(idx).toLowerCase();
-    return ext || "other";
-  },
+  role: (filePath: string, content?: string) => fallbackAdapter.role(filePath, content),
   routes: () => [],
 };
 
@@ -275,7 +273,9 @@ export function adapterForFile(root: string, relPath: string): FrameworkAdapter 
   let dir = path.dirname(path.join(root, relPath));
   while (true) {
     if (fs.existsSync(path.join(dir, "package.json"))) {
-      return selectAdapter(dir);
+      const selected = selectAdapter(dir);
+      if (selected.name !== "fallback") return selected;
+      if (dir === root) return selected;
     }
     if (dir === root) break;
     const parent = path.dirname(dir);

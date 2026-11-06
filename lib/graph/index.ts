@@ -177,6 +177,16 @@ export function transitiveWalkLevels(
   direction: WalkDirection,
   maxDepth: number = 2,
 ): WalkResult {
+  const adjacency = new Map<string, string[]>();
+  for (const e of edges) {
+    const from = direction === "dependents" ? e.to : e.from;
+    const to = direction === "dependents" ? e.from : e.to;
+    const list = adjacency.get(from);
+    if (list) list.push(to);
+    else adjacency.set(from, [to]);
+  }
+  for (const [k, v] of adjacency) adjacency.set(k, [...new Set(v)]);
+
   const seen = new Set<string>([start]);
   const levels: string[][] = [];
   let frontier: string[] = [start];
@@ -184,10 +194,7 @@ export function transitiveWalkLevels(
     const next: string[] = [];
     const levelSet = new Set<string>();
     for (const node of frontier) {
-      const neighbors =
-        direction === "dependents"
-          ? edges.filter((e) => e.to === node).map((e) => e.from)
-          : edges.filter((e) => e.from === node).map((e) => e.to);
+      const neighbors = adjacency.get(node) ?? [];
       for (const n of neighbors) {
         if (n === start) continue;
         if (seen.has(n)) continue;
@@ -200,21 +207,16 @@ export function transitiveWalkLevels(
     frontier = next;
     if (frontier.length === 0) {
       while (levels.length < maxDepth) levels.push([]);
-      // no beyond
       return { levels, beyond: 0 };
     }
   }
-  // count beyond
   let beyond = 0;
   const beyondSeen = new Set(seen);
   let f = frontier;
   while (f.length > 0) {
     const next: string[] = [];
     for (const node of f) {
-      const neighbors =
-        direction === "dependents"
-          ? edges.filter((e) => e.to === node).map((e) => e.from)
-          : edges.filter((e) => e.from === node).map((e) => e.to);
+      const neighbors = adjacency.get(node) ?? [];
       for (const n of neighbors) {
         if (n === start) continue;
         if (beyondSeen.has(n)) continue;

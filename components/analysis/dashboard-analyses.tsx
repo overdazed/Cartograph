@@ -33,6 +33,11 @@ export function DashboardAnalyses({ initialRows }: { initialRows: Row[] }) {
   const [rows, setRows] = useState(initialRows);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRows(initialRows);
+  }, [initialRows]);
+
+  useEffect(() => {
     const channels = rows
       .filter((r) => r.status !== "complete" && r.status !== "failed")
       .map((r) => {

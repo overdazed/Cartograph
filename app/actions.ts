@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseWriterClient } from "@/lib/supabase/writer";
 import { submitAnalysis, runAnalysis } from "../lib/pipeline/run.ts";
 
 export async function rerunAnalysis(analysisId: string): Promise<void> {
@@ -15,16 +16,26 @@ export async function rerunAnalysis(analysisId: string): Promise<void> {
     .from("analyses")
     .select("repository_url")
     .eq("id", analysisId)
+    .eq("organization_id", orgId)
     .maybeSingle();
   const repositoryUrl = data?.repository_url as string | undefined;
   if (!repositoryUrl) throw new Error("Analysis not found");
 
-  await createSupabaseServerClient().from("analyses").update({
-    status: "parsing",
-    stage: "fetch",
-    stage_message: "Starting",
-    updated_at: new Date().toISOString(),
-  }).eq("id", analysisId);
+  const writer = createSupabaseWriterClient();
+  const { data: updated, error } = await writer
+    .from("analyses")
+    .update({
+      status: "parsing",
+      stage: "fetch",
+      stage_message: "Starting",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", analysisId)
+    .eq("organization_id", orgId)
+    .eq("status", "complete")
+    .select("id")
+    .maybeSingle();
+  if (error || !updated) throw new Error("Analysis not claimable");
 
   after(async () => {
     await runAnalysis(analysisId, repositoryUrl, orgId);

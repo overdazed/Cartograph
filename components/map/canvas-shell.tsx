@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import type { ParseResult } from "@/parser/types";
 import { MapCanvas } from "@/components/map/map-canvas";
 import { DetailPane } from "@/components/map/detail-pane";
-import { railCategoriesFor, ALL_FRAMEWORK_CATEGORIES } from "@/lib/rail-taxonomy";
+import { ALL_FRAMEWORK_CATEGORIES } from "@/lib/rail-taxonomy";
 
 const CATEGORY_COLORS = [
   "#3b82f6",
@@ -77,7 +77,7 @@ export function CanvasShell({ data, analysisId }: CanvasShellProps) {
       </aside>
 
       {/* Middle: map */}
-      <main className="relative min-w-0 flex-1">
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         {showBanner ? (
           <div className="border-b border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
             <button
@@ -96,14 +96,16 @@ export function CanvasShell({ data, analysisId }: CanvasShellProps) {
           <button type="button" onClick={() => setCentreView("routes")} className={`px-0 py-1.5 text-[11px] ${centreView === "routes" ? "border-b border-blue-500 text-zinc-900 dark:text-zinc-100" : "text-zinc-500"}`}>Routes&nbsp;&nbsp;{data.routes.length}</button>
         </div>
         {centreView === "map" ? (
-          <MapCanvas
-            data={data}
-            selected={selected}
-            onSelect={setSelected}
-            hovered={hovered}
-            onHover={setHovered}
-            activeCategory={activeCategory}
-          />
+          <div className="min-h-0 flex-1">
+            <MapCanvas
+              data={data}
+              selected={selected}
+              onSelect={setSelected}
+              hovered={hovered}
+              onHover={setHovered}
+              activeCategory={activeCategory}
+            />
+          </div>
         ) : (
           <div className="min-h-0 flex-1 overflow-auto p-3">
             <p className="mb-2 text-[10px] text-zinc-500">Listed only where the method and the full path are both written in the code.</p>

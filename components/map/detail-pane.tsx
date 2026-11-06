@@ -6,6 +6,7 @@ import type { ParseResult, FileRecord } from "@/parser/types";
 import { foldDirectories, buildFoldedNodes, blastRadius, dependencyChain } from "@/lib/graph";
 import { InsightsPanel } from "@/components/map/insights-panel";
 import { rerunAnalysis } from "@/app/actions";
+import { ALL_FRAMEWORK_CATEGORIES } from "@/lib/rail-taxonomy";
 
 type DetailPaneProps = {
   data: ParseResult;
@@ -35,6 +36,7 @@ export function DetailPane({
   onTabChange,
 }: DetailPaneProps) {
   const [blastMode, setBlastMode] = useState<"dependents" | "dependencies" | null>(null);
+  const [rerunError, setRerunError] = useState<string | null>(null);
   const fileByPath = useMemo(
     () => new Map(data.files.map((f) => [f.path, f])),
     [data],
@@ -68,7 +70,7 @@ export function DetailPane({
     [data],
   );
   const unidentifiedCount = useMemo(
-    () => data.files.filter((f) => f.role === null).length,
+    () => data.files.filter((f) => !f.role || !ALL_FRAMEWORK_CATEGORIES.includes(f.role)).length,
     [data],
   );
 
@@ -300,14 +302,24 @@ export function DetailPane({
               )}
             </div>
             {analysisId ? (
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => startTransition(() => rerunAnalysis(analysisId))}
-                className="w-fit border border-zinc-300 px-3 py-1 text-[11px] dark:border-zinc-700"
-              >
-                {pending ? "Starting…" : "Re-run"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => startTransition(async () => {
+                    setRerunError(null);
+                    try {
+                      await rerunAnalysis(analysisId);
+                    } catch (e) {
+                      setRerunError(e instanceof Error ? e.message : String(e));
+                    }
+                  })}
+                  className="w-fit border border-zinc-300 px-3 py-1 text-[11px] dark:border-zinc-700"
+                >
+                  {pending ? "Starting…" : "Re-run"}
+                </button>
+                {rerunError ? <p className="text-[11px] text-red-600">{rerunError}</p> : null}
+              </>
             ) : null}
             <InsightsPanel data={data} onSelectFile={onSelect} />
           </div>

@@ -26,8 +26,8 @@ export async function submitAnalysis(
   if (existing) {
     return { analysisId: existing, created: false };
   }
-  const analysisId = await createAnalysis(organizationId, projectId, repositoryUrl);
-  return { analysisId, created: true };
+  const created = await createAnalysis(organizationId, projectId, repositoryUrl);
+  return { analysisId: created.id, created: created.created };
 }
 
 export async function runAnalysis(

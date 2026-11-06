@@ -73,31 +73,33 @@ function kosarajuSCCs(nodes: string[], adj: Map<string, string[]>): string[][] {
 function findCycleInSCC(sccNodes: string[], adj: Map<string, string[]>): string[] | null {
   const set = new Set(sccNodes);
   const start = sccNodes[0];
-  if (adj.get(start)?.some((n) => n === start)) return [start];
+  if (adj.get(start)?.some((n) => n === start && set.has(n))) return [start];
 
-  const path: string[] = [start];
+  const parent = new Map<string, string>();
   const visited = new Set<string>([start]);
-  const itStack: Iterator<string>[] = [
-    (adj.get(start) ?? []).filter((n) => set.has(n))[Symbol.iterator](),
-  ];
+  const queue: string[] = [start];
+  parent.set(start, start);
 
-  while (path.length > 0) {
-    const top = itStack[itStack.length - 1];
-    const next = top.next();
-    if (next.done) {
-      const node = path.pop() as string;
-      visited.delete(node);
-      itStack.pop();
-      continue;
+  while (queue.length > 0) {
+    const u = queue.shift() as string;
+    for (const nb of adj.get(u) ?? []) {
+      if (!set.has(nb)) continue;
+      if (nb === start && u !== start) {
+        const rev: string[] = [];
+        let cur = u;
+        while (cur !== start) {
+          rev.push(cur);
+          cur = parent.get(cur) as string;
+        }
+        rev.reverse();
+        return [start, ...rev];
+      }
+      if (!visited.has(nb)) {
+        visited.add(nb);
+        parent.set(nb, u);
+        queue.push(nb);
+      }
     }
-    const nb = next.value as string;
-    if (nb === start) {
-      return [...path];
-    }
-    if (visited.has(nb)) continue;
-    visited.add(nb);
-    path.push(nb);
-    itStack.push((adj.get(nb) ?? []).filter((n) => set.has(n))[Symbol.iterator]());
   }
   return null;
 }
@@ -108,7 +110,6 @@ function findCycles(files: FileRecord[], edges: ParseResult["edges"]): string[][
   const adj = new Map<string, string[]>();
   for (const n of nodes) adj.set(n, []);
   for (const e of edges) {
-    if (e.typeOnly) continue;
     if (!nodeSet.has(e.from) || !nodeSet.has(e.to)) continue;
     adj.get(e.from)!.push(e.to);
   }

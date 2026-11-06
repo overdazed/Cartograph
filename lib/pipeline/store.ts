@@ -30,23 +30,30 @@ export async function findOrCreateProject(
 ): Promise<string> {
   const url = normalizeRepositoryUrl(repositoryUrl);
   const client = createSupabaseWriterClient();
-  const { data: existing, error: findError } = await client
-    .from("projects")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("repository_url", url)
-    .maybeSingle();
-  if (findError) throw new Error(`project lookup failed: ${findError.message}`);
-  if (existing?.id) return existing.id as string;
+  const lookup = async () => {
+    const { data, error } = await client
+      .from("projects")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("repository_url", url)
+      .maybeSingle();
+    if (error) throw new Error(`project lookup failed: ${error.message}`);
+    return data?.id as string | undefined;
+  };
+  const existing = await lookup();
+  if (existing) return existing;
 
   const { data: created, error: createError } = await client
     .from("projects")
     .insert({ organization_id: organizationId, repository_url: url, name: url })
     .select("id")
     .single();
-  if (createError || !created?.id) {
-    throw new Error(`project create failed: ${createError?.message ?? "no id"}`);
+  if (createError) {
+    const reused = await lookup();
+    if (reused) return reused;
+    throw new Error(`project create failed: ${createError.message}`);
   }
+  if (!created?.id) throw new Error("project create failed: no id");
   return created.id as string;
 }
 
@@ -65,7 +72,7 @@ export async function createAnalysis(
   organizationId: string,
   projectId: string,
   repositoryUrl: string,
-): Promise<string> {
+): Promise<{ id: string; created: boolean }> {
   const url = normalizeRepositoryUrl(repositoryUrl);
   const client = createSupabaseWriterClient();
   const { data, error } = await client
@@ -80,10 +87,13 @@ export async function createAnalysis(
     })
     .select("id")
     .single();
-  if (error || !data?.id) {
-    throw new Error(`analysis create failed: ${error?.message ?? "no id"}`);
+  if (error) {
+    const existing = await findAnalysisByProject(projectId);
+    if (existing) return { id: existing, created: false };
+    throw new Error(`analysis create failed: ${error.message}`);
   }
-  return data.id as string;
+  if (!data?.id) throw new Error("analysis create failed: no id");
+  return { id: data.id as string, created: true };
 }
 
 export async function setStage(
@@ -144,11 +154,14 @@ export async function storeParseResult(
 ): Promise<void> {
   const client = createSupabaseWriterClient();
 
-  // Replace any prior rows for this analysis.
-  await client.from("edges").delete().eq("analysis_id", analysisId);
-  await client.from("files").delete().eq("analysis_id", analysisId);
-  await client.from("file_roles").delete().eq("analysis_id", analysisId);
-  await client.from("routes").delete().eq("analysis_id", analysisId);
+  const deleteEdges = await client.from("edges").delete().eq("analysis_id", analysisId);
+  if (deleteEdges.error) throw new Error(`edges delete failed: ${deleteEdges.error.message}`);
+  const deleteFiles = await client.from("files").delete().eq("analysis_id", analysisId);
+  if (deleteFiles.error) throw new Error(`files delete failed: ${deleteFiles.error.message}`);
+  const deleteRoles = await client.from("file_roles").delete().eq("analysis_id", analysisId);
+  if (deleteRoles.error) throw new Error(`file_roles delete failed: ${deleteRoles.error.message}`);
+  const deleteRoutes = await client.from("routes").delete().eq("analysis_id", analysisId);
+  if (deleteRoutes.error) throw new Error(`routes delete failed: ${deleteRoutes.error.message}`);
 
   const fileRows = result.files.map((file) => ({
     analysis_id: analysisId,
@@ -158,6 +171,7 @@ export async function storeParseResult(
     line_count: file.lines,
     byte_size: null,
     content_hash: file.hash,
+    entry_reason: file.entryReason,
   }));
   await chunkInsert("files", fileRows);
 
@@ -169,20 +183,28 @@ export async function storeParseResult(
       files_parsed: result.summary.filesParsed,
       imports_total: result.coverage.totalImports,
       imports_resolved: result.coverage.resolvedInternal,
+      imports_resolved_external: result.coverage.resolvedExternal,
+      imports_excluded: result.coverage.excluded,
       adapter: result.adapter,
       updated_at: new Date().toISOString(),
     })
     .eq("id", analysisId);
   if (coverageError) throw new Error(`coverage update failed: ${coverageError.message}`);
 
-  const { data: storedFiles, error: fileError } = await client
-    .from("files")
-    .select("id, path")
-    .eq("analysis_id", analysisId);
-  if (fileError) throw new Error(`file re-read failed: ${fileError.message}`);
   const fileIdByPath = new Map<string, string>();
-  for (const row of storedFiles ?? []) {
-    fileIdByPath.set(row.path as string, row.id as string);
+  let from = 0;
+  while (true) {
+    const { data: page, error: pageError } = await client
+      .from("files")
+      .select("id, path")
+      .eq("analysis_id", analysisId)
+      .order("id", { ascending: true })
+      .range(from, from + 999);
+    if (pageError) throw new Error(`file re-read failed: ${pageError.message}`);
+    if (!page || page.length === 0) break;
+    for (const row of page) fileIdByPath.set(row.path as string, row.id as string);
+    if (page.length < 1000) break;
+    from += 1000;
   }
 
   const roleRows = result.files
