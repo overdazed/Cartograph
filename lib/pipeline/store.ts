@@ -147,6 +147,8 @@ export async function storeParseResult(
   // Replace any prior rows for this analysis.
   await client.from("edges").delete().eq("analysis_id", analysisId);
   await client.from("files").delete().eq("analysis_id", analysisId);
+  await client.from("file_roles").delete().eq("analysis_id", analysisId);
+  await client.from("routes").delete().eq("analysis_id", analysisId);
 
   const fileRows = result.files.map((file) => ({
     analysis_id: analysisId,
@@ -167,6 +169,7 @@ export async function storeParseResult(
       files_parsed: result.summary.filesParsed,
       imports_total: result.coverage.totalImports,
       imports_resolved: result.coverage.resolvedInternal,
+      adapter: result.adapter,
       updated_at: new Date().toISOString(),
     })
     .eq("id", analysisId);
@@ -181,6 +184,26 @@ export async function storeParseResult(
   for (const row of storedFiles ?? []) {
     fileIdByPath.set(row.path as string, row.id as string);
   }
+
+  const roleRows = result.files
+    .filter((file) => file.role)
+    .map((file) => ({
+      analysis_id: analysisId,
+      organization_id: organizationId,
+      file_path: file.path,
+      role: file.role as string,
+      source: "convention",
+    }));
+  if (roleRows.length > 0) await chunkInsert("file_roles", roleRows);
+
+  const routeRows = result.routes.map((route) => ({
+    analysis_id: analysisId,
+    organization_id: organizationId,
+    method: route.method,
+    path: route.path,
+    file_path: route.filePath,
+  }));
+  if (routeRows.length > 0) await chunkInsert("routes", routeRows);
 
   const edgePayload = result.edges
     .filter((edge) => fileIdByPath.has(edge.from) && fileIdByPath.has(edge.to))

@@ -1,4 +1,4 @@
-import type { ParseResult, FileRecord, Edge, SkippedFile, UnresolvedImport, Coverage } from "./types.ts";
+import type { ParseResult, FileRecord, Edge, SkippedFile, UnresolvedImport, Coverage, Route } from "./types.ts";
 
 export class ParseResultValidationError extends Error {
   constructor(message: string) {
@@ -97,25 +97,35 @@ function validateCoverage(value: unknown): Coverage {
   };
 }
 
+function validateRoute(value: unknown, path: string): Route {
+  if (!isRecord(value)) throw new ParseResultValidationError(`${path} must be an object`);
+  return {
+    method: requireString(value.method, `${path}.method`),
+    path: requireString(value.path, `${path}.path`),
+    filePath: requireString(value.filePath, `${path}.filePath`),
+  };
+}
 export function validateParseResult(input: unknown): ParseResult {
   if (!isRecord(input)) throw new ParseResultValidationError("result must be an object");
-  if (input.version !== 2) {
+  if (input.version !== 3) {
     throw new ParseResultValidationError(`unsupported version: ${String(input.version)}`);
   }
   if (!Array.isArray(input.files)) throw new ParseResultValidationError("files must be an array");
   if (!Array.isArray(input.edges)) throw new ParseResultValidationError("edges must be an array");
+  if (!Array.isArray(input.routes)) throw new ParseResultValidationError("routes must be an array");
   if (!Array.isArray(input.skipped)) throw new ParseResultValidationError("skipped must be an array");
 
   const summary = input.summary;
   if (!isRecord(summary)) throw new ParseResultValidationError("summary must be an object");
 
   return {
-    version: 2,
+    version: 3,
     root: requireString(input.root, "root"),
     adapter: requireString(input.adapter, "adapter"),
     generatedAt: requireString(input.generatedAt, "generatedAt"),
     files: input.files.map((item, index) => validateFileRecord(item, `files[${index}]`)),
     edges: input.edges.map((item, index) => validateEdge(item, `edges[${index}]`)),
+    routes: input.routes.map((item, index) => validateRoute(item, `routes[${index}]`)),
     skipped: input.skipped.map((item, index) => validateSkipped(item, `skipped[${index}]`)),
     coverage: validateCoverage(input.coverage),
     summary: {

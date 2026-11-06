@@ -46,7 +46,7 @@ export function parseRepository(rootPath: string): ParseResult {
       folder: folder === "." ? "." : folder,
       lines: countLines(entry.content),
       hash: crypto.createHash("sha256").update(entry.content).digest("hex"),
-      role: null,
+      role: fileAdapter.role(entry.path, entry.content),
       entryReason: fileAdapter.entryPoint(entry.path),
       fanIn: 0,
       fanOut: 0,
@@ -55,6 +55,7 @@ export function parseRepository(rootPath: string): ParseResult {
 
   const edges: Edge[] = [];
   const edgeKeys = new Set<string>();
+  const routes: ParseResult["routes"] = [];
   const unresolvedImports: ParseResult["coverage"]["unresolvedImports"] = [];
 
   let totalImports = 0;
@@ -83,6 +84,10 @@ export function parseRepository(rootPath: string): ParseResult {
       });
       fileRecords.delete(entry.path);
       continue;
+    }
+
+    for (const r of adapterForFile(root, entry.path).routes(entry.path, entry.content)) {
+      routes.push(r);
     }
 
     for (const item of extracted) {
@@ -128,12 +133,13 @@ export function parseRepository(rootPath: string): ParseResult {
   const folders = new Set(files.map((file) => file.folder)).size;
 
   return {
-    version: 2,
+    version: 3,
     root,
     adapter: adapter.name,
     generatedAt: new Date().toISOString(),
     files,
     edges,
+    routes: routes.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method)),
     skipped: allSkipped,
     coverage: {
       totalImports,

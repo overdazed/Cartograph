@@ -18,6 +18,14 @@ export async function rerunAnalysis(analysisId: string): Promise<void> {
     .maybeSingle();
   const repositoryUrl = data?.repository_url as string | undefined;
   if (!repositoryUrl) throw new Error("Analysis not found");
+
+  await createSupabaseServerClient().from("analyses").update({
+    status: "parsing",
+    stage: "fetch",
+    stage_message: "Starting",
+    updated_at: new Date().toISOString(),
+  }).eq("id", analysisId);
+
   after(async () => {
     await runAnalysis(analysisId, repositoryUrl, orgId);
   });

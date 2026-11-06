@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import type { ParseResult, FileRecord } from "@/parser/types";
 import { foldDirectories, buildFoldedNodes, blastRadius, dependencyChain } from "@/lib/graph";
 import { InsightsPanel } from "@/components/map/insights-panel";
+import { rerunAnalysis } from "@/app/actions";
 
 type DetailPaneProps = {
   data: ParseResult;
+  analysisId?: string;
   selected: string | null;
   onSelect: (id: string | null) => void;
   hovered: string | null;
@@ -24,6 +26,7 @@ function kindOf(path: string, file?: FileRecord): string {
 
 export function DetailPane({
   data,
+  analysisId,
   selected,
   onSelect,
   hovered,
@@ -36,6 +39,8 @@ export function DetailPane({
     () => new Map(data.files.map((f) => [f.path, f])),
     [data],
   );
+
+  const [pending, startTransition] = useTransition();
 
   const surviving = useMemo(() => foldDirectories(data.files), [data]);
   const foldedNodes = useMemo(
@@ -120,9 +125,7 @@ export function DetailPane({
         onClick={() => onSelect(path)}
         onMouseEnter={() => onHover(path)}
         onMouseLeave={() => onHover(null)}
-        className={`block w-full whitespace-nowrap text-left font-mono text-[11px] ${
-          isHovered ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : ""
-        }`}
+        className={`block w-full whitespace-nowrap text-left font-mono text-[11px] border-l-4 pl-2 ${selected === path ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : isHovered ? "border-transparent bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "border-transparent"}`}
         title={path}
       >
         {dir ? (
@@ -142,14 +145,14 @@ export function DetailPane({
       {selected ? (
         <>
           {selectedNode ? (
-            <div className="shrink-0 border-b border-zinc-200 px-2 py-1 dark:border-zinc-800">
+            <div className="shrink-0 border-b border-l-4 border-blue-500 border-zinc-200 px-2 py-1 dark:border-zinc-800">
               <div className="font-mono text-[10px] text-zinc-500">folder</div>
               <div className="font-mono text-[11px] font-bold text-zinc-100">
                 {selectedNode.id === "__root__" ? "root" : selectedNode.dir + "/"}
               </div>
             </div>
           ) : selectedFile ? (
-            <div className="shrink-0 border-b border-zinc-200 px-2 py-1 dark:border-zinc-800">
+            <div className="shrink-0 border-b border-l-4 border-blue-500 border-zinc-200 px-2 py-1 dark:border-zinc-800">
               <div className="font-mono text-[10px] text-zinc-500">file</div>
               <div className="font-mono text-[11px] font-bold text-zinc-100">{selectedFile.path}</div>
             </div>
@@ -190,8 +193,12 @@ export function DetailPane({
               </div>
               <div className="border border-zinc-800 p-2">
                 <div className="font-mono text-[10px] text-zinc-500">Routes</div>
-                <div className="font-mono text-[12px] text-zinc-100">—</div>
-                <div className="font-mono text-[9px] text-zinc-500">no adapter</div>
+                <div className="font-mono text-[12px] text-zinc-100">
+                  {data.adapter === "fallback" ? "—" : data.routes.length}
+                </div>
+                <div className="font-mono text-[9px] text-zinc-500">
+                  {data.adapter === "fallback" ? "no framework adapter" : "extracted"}
+                </div>
               </div>
             </div>
             <div className="font-mono text-[10px] text-zinc-500">
@@ -248,9 +255,60 @@ export function DetailPane({
                 <span>{unidentifiedCount}</span>
               </div>
               <div className="font-mono text-[10px] text-zinc-500">
-                No framework adapter applied, so no file was matched to a role.
+                {data.adapter === "fallback" ? "No framework adapter applied, so no file was matched to a role." : "Files no convention matched."}
               </div>
             </div>
+            <div>
+              <div className="mb-1 flex items-center justify-between font-mono text-[10px] text-zinc-500">
+                <span>Routes</span>
+                <span>{data.routes.length}</span>
+              </div>
+              {data.routes.length === 0 ? (
+                <p className="text-[11px] text-zinc-500">
+                  {data.adapter === "fallback" ? "no framework adapter" : "none extracted"}
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full font-mono text-[10px]">
+                    <thead className="text-zinc-500">
+                      <tr>
+                        <th className="px-1 py-0.5 text-left font-normal">Method</th>
+                        <th className="px-1 py-0.5 text-left font-normal">Path</th>
+                        <th className="px-1 py-0.5 text-left font-normal">File</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {data.routes.map((r, i) => (
+                        <tr key={`${r.method}-${r.path}-${i}`}>
+                          <td className="px-1 py-0.5 text-zinc-100">{r.method}</td>
+                          <td className="px-1 py-0.5 text-zinc-300">{r.path}</td>
+                          <td className="px-1 py-0.5">
+                            <button
+                              type="button"
+                              onClick={() => onSelect(r.filePath)}
+                              className="truncate text-left text-zinc-500 hover:text-zinc-100"
+                              title={r.filePath}
+                            >
+                              {r.filePath}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            {analysisId ? (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => startTransition(() => rerunAnalysis(analysisId))}
+                className="w-fit border border-zinc-300 px-3 py-1 text-[11px] dark:border-zinc-700"
+              >
+                {pending ? "Starting…" : "Re-run"}
+              </button>
+            ) : null}
             <InsightsPanel data={data} onSelectFile={onSelect} />
           </div>
         ) : activeTab === "explanation" ? (

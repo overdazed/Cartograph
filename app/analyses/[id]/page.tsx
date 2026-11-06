@@ -5,8 +5,9 @@ import { Suspense } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ProgressView } from "@/components/analysis/progress-view";
 import { CanvasShell } from "@/components/map/canvas-shell";
+import { rerunAnalysis } from "@/app/actions";
 
-import type { ParseResult, FileRecord, Edge } from "@/parser/types";
+import type { ParseResult, FileRecord, Edge, Route } from "@/parser/types";
 
 type AnalysisRow = {
   id: string;
@@ -16,6 +17,7 @@ type AnalysisRow = {
   stage_message: string | null;
   commit_sha: string | null;
   error: string | null;
+  adapter: string | null;
   files_found: number | null;
   files_parsed: number | null;
   imports_total: number | null;
@@ -29,7 +31,7 @@ async function loadAnalysis(id: string) {
   const { data: analysis, error: aErr } = await supabase
     .from("analyses")
     .select(
-      "id, repository_url, status, stage, stage_message, commit_sha, error, files_found, files_parsed, imports_total, imports_resolved, created_at, updated_at",
+      "id, repository_url, status, stage, stage_message, commit_sha, error, adapter, files_found, files_parsed, imports_total, imports_resolved, created_at, updated_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -45,6 +47,16 @@ async function loadAnalysis(id: string) {
     .select("source_path, target_path, kind, type_only")
     .eq("analysis_id", id);
 
+  const { data: roleRows } = await supabase
+    .from("file_roles")
+    .select("file_path, role")
+    .eq("analysis_id", id);
+
+  const { data: routeRows } = await supabase
+    .from("routes")
+    .select("method, path, file_path")
+    .eq("analysis_id", id);
+
   const fanIn = new Map<string, number>();
   const fanOut = new Map<string, number>();
   for (const e of edges ?? []) {
@@ -52,15 +64,24 @@ async function loadAnalysis(id: string) {
     fanIn.set(e.target_path, (fanIn.get(e.target_path) ?? 0) + 1);
   }
 
+  const roleByPath = new Map<string, string>();
+  for (const r of roleRows ?? []) roleByPath.set(r.file_path as string, r.role as string);
+
   const fileRecords: FileRecord[] = (files ?? []).map((f) => ({
     path: f.path as string,
     folder: (f.folder as string) ?? ".",
     lines: (f.line_count as number) ?? 0,
     hash: (f.content_hash as string) ?? "",
-    role: null,
+    role: roleByPath.get(f.path as string) ?? null,
     entryReason: null,
     fanIn: fanIn.get(f.path as string) ?? 0,
     fanOut: fanOut.get(f.path as string) ?? 0,
+  }));
+
+  const routeRecords: Route[] = (routeRows ?? []).map((r) => ({
+    method: r.method as string,
+    path: r.path as string,
+    filePath: r.file_path as string,
   }));
 
   const edgeRecords: Edge[] = (edges ?? []).map((e) => ({
@@ -75,12 +96,13 @@ async function loadAnalysis(id: string) {
   const resolvedInternal = (analysis as AnalysisRow).imports_resolved ?? 0;
 
   const parseResult: ParseResult = {
-    version: 2,
+    version: 3,
     root: analysis.repository_url as string,
-    adapter: "stored",
+    adapter: ((analysis as AnalysisRow).adapter as string) ?? "stored",
     generatedAt: analysis.updated_at as string,
     files: fileRecords,
     edges: edgeRecords,
+    routes: routeRecords,
     skipped: [],
     coverage: {
       totalImports,
@@ -114,6 +136,11 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
 
   const { analysis, parseResult } = loaded;
 
+  const knownAdapters = new Set(["nextjs", "nestjs", "docusaurus", "react", "fallback"]);
+  if (analysis.status === "complete" && !knownAdapters.has(String((analysis as AnalysisRow).adapter ?? ""))) {
+    await rerunAnalysis(id);
+  }
+
   if (analysis.status !== "complete") {
     return (
       <ProgressView
@@ -130,7 +157,7 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
   return (
     <Suspense fallback={<p className="p-8 text-sm">Loading map…</p>}>
       <div className="h-[calc(100vh-64px)] w-full">
-        <CanvasShell data={parseResult} />
+        <CanvasShell data={parseResult} analysisId={id} />
       </div>
     </Suspense>
   );

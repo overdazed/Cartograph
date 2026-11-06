@@ -15,6 +15,7 @@ import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
 
 import type { ParseResult } from "@/parser/types";
+import { ALL_FRAMEWORK_CATEGORIES } from "@/lib/rail-taxonomy";
 import {
   buildFoldedNodes,
   foldDirectories,
@@ -411,7 +412,7 @@ const connectedNodes = useMemo(() => {
       let height: number;
       if (collapsed) {
         width = Math.max(120, label.length * 7 + 24);
-        height = Math.max(36, 32 + Math.min(n.fanIn, 60));
+        height = Math.max(44, 40 + Math.min(n.fanIn, 60));
       } else {
         const visibleRows = Math.min(n.files.length, MAX_ROWS);
         const longest = n.files.reduce((m, f) => Math.max(m, (f.split("/").pop() ?? "").length), 0);
@@ -421,8 +422,10 @@ const connectedNodes = useMemo(() => {
       const fileStats = Object.fromEntries(data.files.map((f) => [f.path, { fanIn: f.fanIn, fanOut: f.fanOut }]));
       const categoryMatchCount = activeCategory
         ? n.files.filter((p) => {
-            const ext = p.slice(p.lastIndexOf(".")).toLowerCase();
-            return (ext || "other") === activeCategory;
+            const fileRec = data.files.find((f) => f.path === p);
+            const role = fileRec?.role;
+            const key = role && ALL_FRAMEWORK_CATEGORIES.includes(role) ? role : "Unclassified";
+            return (key || "Unclassified") === activeCategory;
           }).length
         : 0;
       const dimmed = false;
@@ -546,8 +549,10 @@ const connectedNodes = useMemo(() => {
     if (activeCategory) {
       for (const n of nodesInfo) {
         const match = n.files.some((f) => {
-          const ext = f.slice(f.lastIndexOf(".")).toLowerCase();
-          return (ext || "other") === activeCategory;
+          const fileRec = data.files.find((x) => x.path === f);
+          const role = fileRec?.role;
+          const key = role && ALL_FRAMEWORK_CATEGORIES.includes(role) ? role : "Unclassified";
+          return (key || "Unclassified") === activeCategory;
         });
         if (match) categoryNodeIds.add(n.id);
       }

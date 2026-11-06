@@ -11,6 +11,12 @@ export type FileRecord = {
   fanOut: number;
 };
 
+export type Route = {
+  method: string;
+  path: string;
+  filePath: string;
+};
+
 export type Edge = {
   from: string;
   to: string;
@@ -48,6 +54,7 @@ export type ParseResult = {
   generatedAt: string;
   files: FileRecord[];
   edges: Edge[];
+  routes: Route[];
   skipped: SkippedFile[];
   coverage: Coverage;
   summary: {
