@@ -47,6 +47,11 @@ export function DashboardAnalyses({ initialRows }: { initialRows: Row[] }) {
     return () => clearInterval(id);
   }, [rows]);
 
+  const activeRowIds = rows
+    .filter((r) => r.status !== "complete" && r.status !== "failed")
+    .map((r) => r.id)
+    .join(",");
+
   useEffect(() => {
     const channels = rows
       .filter((r) => r.status !== "complete" && r.status !== "failed")
@@ -89,7 +94,7 @@ export function DashboardAnalyses({ initialRows }: { initialRows: Row[] }) {
     return () => {
       channels.forEach((c) => supabase.removeChannel(c));
     };
-  }, [supabase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supabase, activeRowIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const counts = Object.fromEntries(STATUSES.map((s) => [s, 0])) as Record<string, number>;
   for (const row of rows) {

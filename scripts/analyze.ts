@@ -38,12 +38,16 @@ if (!created && !rerun) {
   process.exit(0);
 }
 
-await runAnalysis(analysisId, url, orgId);
+const outcome = await runAnalysis(analysisId, url, orgId);
 const { data: statusRow } = await createSupabaseWriterClient()
   .from("analyses")
-  .select("status")
+  .select("status, error")
   .eq("id", analysisId)
   .maybeSingle();
 const summary = await getAnalysisSummary(analysisId);
 console.log(`Analysis ${analysisId}: ${summary.files} files, ${summary.edges} edges`);
-if (statusRow?.status !== "complete") process.exit(1);
+if (!outcome.ok || statusRow?.status !== "complete") {
+  if (statusRow?.error) console.error(statusRow.error);
+  else if (outcome.error) console.error(outcome.error);
+  process.exit(1);
+}

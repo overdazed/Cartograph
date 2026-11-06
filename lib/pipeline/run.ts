@@ -36,7 +36,7 @@ export async function runAnalysis(
   analysisId: string,
   repositoryUrl: string,
   organizationId: string,
-): Promise<void> {
+): Promise<{ ok: boolean; error?: string }> {
   let fetched: { rootPath: string; commitSha: string; cleanup: () => void } | null = null;
   let currentStage = "fetch";
   try {
@@ -56,12 +56,13 @@ export async function runAnalysis(
     await storeParseResult(analysisId, organizationId, result);
 
     await setComplete(analysisId, fetched.commitSha);
+    return { ok: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await setFailed(analysisId, currentStage, message).catch(() => undefined);
+    return { ok: false, error: message };
   } finally {
     fetched?.cleanup();
-    // Remove any stray temp files if fetch failed before cleanup assignment.
     if (!fetched) {
       // nothing to clean
     }
