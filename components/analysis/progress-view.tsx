@@ -36,7 +36,6 @@ export function ProgressView({
   const [stage, setStage] = useState(initialStage ?? "fetch");
   const [message, setMessage] = useState(initialMessage ?? "Starting");
   const [status, setStatus] = useState(initialStatus);
-  const [error] = useState(initialError);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
   const [pending, startTransition] = useTransition();
 
@@ -49,7 +48,7 @@ export function ProgressView({
         if (p.message !== undefined) setMessage(p.message ?? "");
         if (p.status) setStatus(p.status);
         setUpdatedAt(new Date().toISOString());
-        if (p.stage === "complete" || p.stage === "failed") {
+        if (p.stage === "complete" || p.stage === "failed" || p.status === "complete" || p.status === "failed") {
           router.refresh();
         }
       })
@@ -99,7 +98,7 @@ export function ProgressView({
         })}
       </ol>
       {status === "failed" ? (
-        <p className="text-sm text-red-600">{error ?? "Run failed."}</p>
+        <p className="text-sm text-red-600">{initialError ?? "Run failed."}</p>
       ) : null}
       {stale ? <p className="text-sm text-amber-600">Stale: no progress for 5 minutes.</p> : null}
       {status === "complete" || status === "failed" || stale ? (

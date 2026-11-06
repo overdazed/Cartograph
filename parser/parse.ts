@@ -6,6 +6,7 @@ import { walkRepository } from "./walk.ts";
 import { extractImports } from "./extract.ts";
 import { computeFanInOut } from "./graph.ts";
 import { selectAdapter, adapterForFile } from "./adapters.ts";
+import type { FrameworkAdapter } from "./adapters.ts";
 import type { Edge, EdgeKind, FileRecord, ParseResult, SkippedFile } from "./types.ts";
 
 function countLines(content: string): number {
@@ -38,9 +39,19 @@ export function parseRepository(rootPath: string): ParseResult {
   }
 
   const fileRecords = new Map<string, FileRecord>();
+  const adapterCache = new Map<string, FrameworkAdapter>();
+  const adapterFor = (rel: string): FrameworkAdapter => {
+    const dir = path.dirname(rel);
+    const cached = adapterCache.get(dir);
+    if (cached) return cached;
+    const resolved = adapterForFile(root, rel);
+    adapterCache.set(dir, resolved);
+    return resolved;
+  };
+
   for (const entry of parsed) {
     const folder = path.dirname(entry.path).split(path.sep).join("/");
-    const fileAdapter = adapterForFile(root, entry.path);
+    const fileAdapter = adapterFor(entry.path);
     fileRecords.set(entry.path, {
       path: entry.path,
       folder: folder === "." ? "." : folder,
@@ -86,7 +97,7 @@ export function parseRepository(rootPath: string): ParseResult {
       continue;
     }
 
-    for (const r of adapterForFile(root, entry.path).routes(entry.path, entry.content)) {
+    for (const r of adapterFor(entry.path).routes(entry.path, entry.content)) {
       routes.push(r);
     }
 

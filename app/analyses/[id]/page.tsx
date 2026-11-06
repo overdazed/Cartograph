@@ -5,7 +5,6 @@ import { Suspense } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ProgressView } from "@/components/analysis/progress-view";
 import { CanvasShell } from "@/components/map/canvas-shell";
-import { rerunAnalysis } from "@/app/actions";
 
 import type { ParseResult, FileRecord, Edge, Route } from "@/parser/types";
 
@@ -43,12 +42,13 @@ async function loadAnalysis(id: string) {
     const rows: T[] = [];
     let from = 0;
     while (true) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from(table)
         .select(columns)
         .eq("analysis_id", id)
         .range(from, from + 999)
         .order("id", { ascending: true });
+      if (error) throw new Error(`${table} fetch failed: ${error.message}`);
       if (!data || data.length === 0) break;
       rows.push(...(data as T[]));
       if (data.length < 1000) break;
@@ -147,11 +147,6 @@ export default async function AnalysisPage({ params }: { params: Promise<{ id: s
   if (!loaded) notFound();
 
   const { analysis, parseResult } = loaded;
-
-  const knownAdapters = new Set(["nextjs", "nestjs", "docusaurus", "react", "fallback"]);
-  if (analysis.status === "complete" && !knownAdapters.has(String((analysis as AnalysisRow).adapter ?? ""))) {
-    await rerunAnalysis(id);
-  }
 
   if (analysis.status !== "complete") {
     return (

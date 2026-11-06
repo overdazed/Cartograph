@@ -28,7 +28,7 @@ export function CanvasShell({ data, analysisId }: CanvasShellProps) {
     data.coverage.totalImports === 0
       ? 100
       : (data.coverage.resolvedInternal / data.coverage.totalImports) * 100;
-  const showBanner = coveragePercent < 95;
+  const showBanner = data.coverage.unresolved > 0;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [bannerCollapsed, setBannerCollapsed] = useState(false);

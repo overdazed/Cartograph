@@ -33,7 +33,7 @@ async function githubJson(url: string): Promise<unknown> {
     if (!response.ok) {
       throw new Error(`GitHub request failed (${response.status}): ${url}`);
     }
-    return response.json();
+    return await response.json();
   } finally {
     clearTimeout(timer);
   }
@@ -71,22 +71,17 @@ export async function fetchRepository(repositoryUrl: string): Promise<FetchedRep
     }
   };
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    let archiveResponse: Response;
-    try {
-      archiveResponse = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/tarball/${commitSha}`,
-        {
-          headers: { "User-Agent": "cartograph", Accept: "application/vnd.github+json" },
-          redirect: "follow",
-          signal: controller.signal,
-        },
-      );
-    } finally {
-      clearTimeout(timer);
-    }
+    const archiveResponse = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/tarball/${commitSha}`,
+      {
+        headers: { "User-Agent": "cartograph", Accept: "application/vnd.github+json" },
+        redirect: "follow",
+        signal: controller.signal,
+      },
+    );
     if (!archiveResponse.ok) {
       throw new Error(`Could not download archive (${archiveResponse.status})`);
     }
@@ -96,6 +91,7 @@ export async function fetchRepository(repositoryUrl: string): Promise<FetchedRep
     const reader = body.getReader();
     const fileStream = fs.createWriteStream(archivePath);
     let downloaded = 0;
+    let downloadError: unknown = null;
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -104,11 +100,26 @@ export async function fetchRepository(repositoryUrl: string): Promise<FetchedRep
         if (downloaded > ARCHIVE_BYTE_CAP) {
           throw new Error("Archive exceeds byte cap");
         }
-        fileStream.write(value);
+        if (!fileStream.write(value)) {
+          await new Promise<void>((resolve, reject) => {
+            fileStream.once("drain", resolve);
+            fileStream.once("error", reject);
+          });
+        }
       }
+    } catch (error) {
+      downloadError = error;
+      await reader.cancel().catch(() => undefined);
     } finally {
       fileStream.end();
+      await new Promise<void>((resolve, reject) => {
+        fileStream.on("finish", resolve);
+        fileStream.on("error", reject);
+      }).catch((error) => {
+        if (!downloadError) downloadError = error;
+      });
     }
+    if (downloadError) throw downloadError;
 
     let extractedBytes = 0;
     let entryCount = 0;
@@ -126,12 +137,14 @@ export async function fetchRepository(repositoryUrl: string): Promise<FetchedRep
 
     fs.rmSync(archivePath, { force: true });
 
+    clearTimeout(timer);
     return {
       rootPath: tempDir,
       commitSha,
       cleanup,
     };
   } catch (error) {
+    clearTimeout(timer);
     cleanup();
     throw error;
   }

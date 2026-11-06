@@ -21,6 +21,7 @@ export async function rerunAnalysis(analysisId: string): Promise<void> {
   const repositoryUrl = data?.repository_url as string | undefined;
   if (!repositoryUrl) throw new Error("Analysis not found");
 
+  const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const writer = createSupabaseWriterClient();
   const { data: updated, error } = await writer
     .from("analyses")
@@ -32,7 +33,7 @@ export async function rerunAnalysis(analysisId: string): Promise<void> {
     })
     .eq("id", analysisId)
     .eq("organization_id", orgId)
-    .eq("status", "complete")
+    .or(`status.in.(complete,failed),and(status.eq.parsing,updated_at.lt.${cutoff})`)
     .select("id")
     .maybeSingle();
   if (error || !updated) throw new Error("Analysis not claimable");

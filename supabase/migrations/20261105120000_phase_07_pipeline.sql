@@ -1,11 +1,31 @@
 -- Phase 7: pipeline support
 
 -- Resolve duplicate project_id values before enforcing one analysis per project,
--- keeping the newest analysis for each project.
+-- keeping the newest analysis for each project (id breaks created_at ties).
 delete from public.analyses a
 using public.analyses b
 where a.project_id = b.project_id
-  and a.created_at < b.created_at;
+  and (
+    a.created_at < b.created_at
+    or (a.created_at = b.created_at and a.id < b.id)
+  );
+
+-- Consolidate projects with the same organization and repository URL before
+-- adding the unique constraint, reassigning analyses to the retained project.
+update public.analyses
+set project_id = retained.id
+from public.projects p
+join public.projects retained
+  on retained.organization_id = p.organization_id
+ and retained.repository_url = p.repository_url
+ and retained.id < p.id
+where public.analyses.project_id = p.id;
+
+delete from public.projects p
+using public.projects retained
+where retained.organization_id = p.organization_id
+  and retained.repository_url = p.repository_url
+  and retained.id < p.id;
 
 -- unique constraint: one analysis per project (repository)
 alter table public.analyses
