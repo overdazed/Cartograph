@@ -124,8 +124,8 @@ export function CanvasShell({ data, analysisId }: CanvasShellProps) {
                 <tbody className="divide-y divide-zinc-800">
                   {data.routes.map((r, i) => (
                                       <tr key={i} className={`cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900 border-l-2 ${selected === r.filePath ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-b-0" : "border-transparent"}`} onClick={() => setSelected(r.filePath)}>
-                      <td className="px-2 py-1 text-zinc-100">{r.method}</td>
-                      <td className="px-2 py-1 text-zinc-300">{r.path}</td>
+                      <td className="px-2 py-1 text-zinc-900 dark:text-zinc-100">{r.method}</td>
+                      <td className="px-2 py-1 text-zinc-700 dark:text-zinc-300">{r.path}</td>
                       <td className="px-2 py-1 text-zinc-500">{r.filePath}</td>
                     </tr>
                   ))}
