@@ -182,6 +182,7 @@ export async function storeParseResult(
     byte_size: null,
     content_hash: file.hash,
     entry_reason: file.entryReason,
+    exports: file.exports,
   }));
   await chunkInsert("files", fileRows);
 

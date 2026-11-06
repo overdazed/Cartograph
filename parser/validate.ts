@@ -42,6 +42,7 @@ function validateFileRecord(value: unknown, path: string): FileRecord {
     hash: requireString(value.hash, `${path}.hash`),
     role: value.role === null ? null : requireString(value.role, `${path}.role`),
     entryReason: value.entryReason === null ? null : requireString(value.entryReason, `${path}.entryReason`),
+    exports: Array.isArray(value.exports) ? value.exports.map((v, i) => requireString(v, `${path}.exports[${i}]`)) : [],
     fanIn: requireNumber(value.fanIn, `${path}.fanIn`),
     fanOut: requireNumber(value.fanOut, `${path}.fanOut`),
   };
@@ -51,7 +52,7 @@ function validateFileRecord(value: unknown, path: string): FileRecord {
 function validateEdge(value: unknown, path: string): Edge {
   if (!isRecord(value)) throw new ParseResultValidationError(`${path} must be an object`);
   const kind = requireString(value.kind, `${path}.kind`);
-  if (kind !== "import" && kind !== "reexport" && kind !== "dynamic") {
+  if (kind !== "import" && kind !== "reexport" && kind !== "dynamic" && kind !== "require") {
     throw new ParseResultValidationError(`${path}.kind is invalid`);
   }
   return {
@@ -75,7 +76,7 @@ function validateSkipped(value: unknown, path: string): SkippedFile {
 function validateUnresolved(value: unknown, path: string): UnresolvedImport {
   if (!isRecord(value)) throw new ParseResultValidationError(`${path} must be an object`);
   const kind = requireString(value.kind, `${path}.kind`);
-  if (kind !== "import" && kind !== "reexport" && kind !== "dynamic") {
+  if (kind !== "import" && kind !== "reexport" && kind !== "dynamic" && kind !== "require") {
     throw new ParseResultValidationError(`${path}.kind is invalid`);
   }
   return {
@@ -118,7 +119,7 @@ function validateRoute(value: unknown, path: string): Route {
 /** Auto-generated docstring. */
 export function validateParseResult(input: unknown): ParseResult {
   if (!isRecord(input)) throw new ParseResultValidationError("result must be an object");
-  if (input.version !== 3) {
+  if (input.version !== 4) {
     throw new ParseResultValidationError(`unsupported version: ${String(input.version)}`);
   }
   if (!Array.isArray(input.files)) throw new ParseResultValidationError("files must be an array");
@@ -130,7 +131,7 @@ export function validateParseResult(input: unknown): ParseResult {
   if (!isRecord(summary)) throw new ParseResultValidationError("summary must be an object");
 
   return {
-    version: 3,
+    version: 4,
     root: requireString(input.root, "root"),
     adapter: requireString(input.adapter, "adapter"),
     generatedAt: requireString(input.generatedAt, "generatedAt"),

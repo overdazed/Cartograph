@@ -82,6 +82,7 @@ export function DetailPane({
     const labels: string[] = [];
     if (relevant.some((e) => e.kind === "reexport")) labels.push("re-export");
     if (relevant.some((e) => e.kind === "dynamic")) labels.push("dynamic");
+    if (relevant.some((e) => e.kind === "require")) labels.push("require");
     if (relevant.some((e) => e.typeOnly)) labels.push("type-only");
     return labels.join(" ");
   };
@@ -270,10 +271,14 @@ export function DetailPane({
                 <span>{data.routes.length}</span>
               </div>
               {data.routes.length === 0 ? (
-                <p className="text-[11px] text-zinc-500">
-                  {data.adapter === "fallback" ? "no framework adapter" : "none extracted"}
-                </p>
-              ) : (
+                                <p className="text-[11px] text-zinc-500">
+                                  {data.adapter === "fallback"
+                                    ? "no framework adapter"
+                                    : data.adapter === "express"
+                                      ? "Express builds its routes at runtime"
+                                      : "none extracted"}
+                                </p>
+                              ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full font-mono text-[10px]">
                     <thead className="text-zinc-500">
@@ -358,6 +363,16 @@ export function DetailPane({
                 <span className="text-green-600 dark:text-green-400">{dependents.length} files</span>
               </div>
             </div>
+            {selectedFile.exports && selectedFile.exports.length > 0 ? (
+              <div>
+                <div className="mb-1 font-mono text-[10px] text-zinc-500">Exports</div>
+                <div className="flex flex-col gap-0.5">
+                  {selectedFile.exports.map((name) => (
+                    <div key={name} className="font-mono text-[11px] text-zinc-100">{name}</div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <div>
               <div className="mb-1 flex items-center gap-2 font-mono text-[10px] text-zinc-500">
                 <span>Blast radius / dependency chain (2 levels)</span>

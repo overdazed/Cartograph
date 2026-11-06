@@ -58,7 +58,7 @@ async function loadAnalysis(id: string) {
     return rows;
   };
 
-  const files = await fetchAll<{ path: string; folder: string | null; line_count: number | null; content_hash: string | null; entry_reason: string | null }>("files", "path, folder, line_count, content_hash, entry_reason");
+  const files = await fetchAll<{ path: string; folder: string | null; line_count: number | null; content_hash: string | null; entry_reason: string | null; exports: string[] | null }>("files", "path, folder, line_count, content_hash, entry_reason, exports");
   const edges = await fetchAll<{ source_path: string; target_path: string; kind: string; type_only: boolean | null }>("edges", "source_path, target_path, kind, type_only");
   const roleRows = await fetchAll<{ file_path: string; role: string }>("file_roles", "file_path, role");
   const routeRows = await fetchAll<{ method: string; path: string; file_path: string }>("routes", "method, path, file_path");
@@ -84,6 +84,7 @@ async function loadAnalysis(id: string) {
     hash: (f.content_hash as string) ?? "",
     role: roleByPath.get(f.path as string) ?? null,
     entryReason: (f.entry_reason as string) ?? null,
+    exports: (f.exports as string[]) ?? [],
     fanIn: fanIn.get(f.path as string) ?? 0,
     fanOut: fanOut.get(f.path as string) ?? 0,
   }));
@@ -113,7 +114,7 @@ async function loadAnalysis(id: string) {
   const unresolvedImportsCount = Math.max(0, totalImports - resolvedInternal - externalImports - excludedImports);
 
   const parseResult: ParseResult = {
-    version: 3,
+    version: 4,
     root: analysis.repository_url as string,
     adapter: ((analysis as AnalysisRow).adapter as string) ?? "stored",
     generatedAt: analysis.updated_at as string,

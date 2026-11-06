@@ -1,4 +1,4 @@
-export type EdgeKind = "import" | "reexport" | "dynamic";
+export type EdgeKind = "import" | "reexport" | "dynamic" | "require";
 
 export type FileRecord = {
   path: string;
@@ -7,6 +7,7 @@ export type FileRecord = {
   hash: string;
   role: string | null;
   entryReason: string | null;
+  exports: string[];
   fanIn: number;
   fanOut: number;
 };

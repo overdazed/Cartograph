@@ -3,7 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 import { walkRepository } from "./walk.ts";
-import { extractImports } from "./extract.ts";
+import { extractImports, extractExports } from "./extract.ts";
 import { computeFanInOut } from "./graph.ts";
 import { selectAdapter, adapterForFile } from "./adapters.ts";
 import type { FrameworkAdapter } from "./adapters.ts";
@@ -77,6 +77,7 @@ export function parseRepository(rootPath: string): ParseResult {
       hash: crypto.createHash("sha256").update(entry.content).digest("hex"),
       role: fileAdapter.role(pkgRel, entry.content),
       entryReason: fileAdapter.entryPoint(pkgRel),
+      exports: extractExports(root, entry.path, entry.content),
       fanIn: 0,
       fanOut: 0,
     });
@@ -163,7 +164,7 @@ export function parseRepository(rootPath: string): ParseResult {
   const folders = new Set(files.map((file) => file.folder)).size;
 
   return {
-    version: 3,
+    version: 4,
     root,
     adapter: adapter.name,
     generatedAt: new Date().toISOString(),

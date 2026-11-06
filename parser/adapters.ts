@@ -233,6 +233,35 @@ export const nestAdapter: FrameworkAdapter = {
   },
 };
 
+export const expressAdapter: FrameworkAdapter = {
+  name: "express",
+  detect: (dirPath: string) => {
+    const deps = depsOf(readPackageJson(dirPath));
+    return Boolean(deps.express);
+  },
+  extraExcludedDirs: () => [],
+  entryPoint: (filePath: string) => commonEntryReason(filePath),
+  role: (filePath: string) => {
+    const p = filePath.toLowerCase();
+    const parts = p.split("/");
+    /** Auto-generated docstring. */
+    const folderRole = (segment: string): string | null => {
+      if (["routes", "route", "routers", "router"].includes(segment)) return "Routers";
+      if (["controllers", "controller"].includes(segment)) return "Controllers";
+      if (["services", "service"].includes(segment)) return "Services";
+      if (["models", "model"].includes(segment)) return "Models";
+      if (["middleware", "middlewares"].includes(segment)) return "Middleware";
+      return null;
+    };
+    for (const segment of parts.slice(0, -1)) {
+      const r = folderRole(segment);
+      if (r) return r;
+    }
+    return null;
+  },
+  routes: () => [],
+};
+
 export const reactAdapter: FrameworkAdapter = {
   name: "react",
   detect: (dirPath: string) => {
@@ -269,7 +298,7 @@ export const docusaurusAdapter: FrameworkAdapter = {
   routes: () => [],
 };
 
-const adapters: FrameworkAdapter[] = [nextAdapter, nestAdapter, docusaurusAdapter, reactAdapter, fallbackAdapter];
+const adapters: FrameworkAdapter[] = [nextAdapter, nestAdapter, expressAdapter, docusaurusAdapter, reactAdapter, fallbackAdapter];
 
 /** Auto-generated docstring. */
 export function selectAdapter(rootPath: string): FrameworkAdapter {

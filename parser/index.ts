@@ -1,5 +1,5 @@
 export { parseRepository } from "./parse.ts";
-export { extractImports } from "./extract.ts";
+export { extractImports, extractExports } from "./extract.ts";
 export { validateParseResult, ParseResultValidationError } from "./validate.ts";
 export type { ParseResult, FileRecord, Edge, EdgeKind, Coverage, SkippedFile, UnresolvedImport, Route } from "./types.ts";
 export { selectAdapter, registerAdapter, fallbackAdapter, adapterForFile } from "./adapters.ts";
