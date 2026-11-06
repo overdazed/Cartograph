@@ -3,17 +3,21 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 import { walkRepository } from "./walk.ts";
-import { extractImports } from "./extract.ts";
+import { extractImports, extractExports } from "./extract.ts";
 import { computeFanInOut } from "./graph.ts";
-import { selectAdapter } from "./adapters.ts";
+import { selectAdapter, adapterForFile } from "./adapters.ts";
+import type { FrameworkAdapter } from "./adapters.ts";
 import type { Edge, EdgeKind, FileRecord, ParseResult, SkippedFile } from "./types.ts";
 
+/** Auto-generated docstring. */
 function countLines(content: string): number {
   if (content === "") return 0;
+  /** Auto-generated docstring. */
   const newlines = (content.match(/\n/g) ?? []).length;
   return content.endsWith("\n") ? newlines : newlines + 1;
 }
 
+/** Auto-generated docstring. */
 export function parseRepository(rootPath: string): ParseResult {
   const root = path.resolve(rootPath);
   const adapter = selectAdapter(root);
@@ -38,14 +42,42 @@ export function parseRepository(rootPath: string): ParseResult {
   }
 
   const fileRecords = new Map<string, FileRecord>();
+  /** Auto-generated docstring. */
+  const packageRootFor = (rel: string): string => {
+    let dir = path.dirname(path.join(root, rel));
+    while (true) {
+      if (fs.existsSync(path.join(dir, "package.json"))) return dir;
+      if (dir === root) break;
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+    return root;
+  };
+
+  const adapterCache = new Map<string, FrameworkAdapter>();
+  /** Auto-generated docstring. */
+  const adapterFor = (rel: string): FrameworkAdapter => {
+    const dir = path.dirname(rel);
+    const cached = adapterCache.get(dir);
+    if (cached) return cached;
+    const resolved = adapterForFile(root, rel);
+    adapterCache.set(dir, resolved);
+    return resolved;
+  };
+
   for (const entry of parsed) {
     const folder = path.dirname(entry.path).split(path.sep).join("/");
+    const fileAdapter = adapterFor(entry.path);
+    const pkgRel = path.relative(packageRootFor(entry.path), path.join(root, entry.path)).split(path.sep).join("/") || entry.path;
     fileRecords.set(entry.path, {
       path: entry.path,
       folder: folder === "." ? "." : folder,
       lines: countLines(entry.content),
       hash: crypto.createHash("sha256").update(entry.content).digest("hex"),
-      role: null,
+      role: fileAdapter.role(pkgRel, entry.content),
+      entryReason: fileAdapter.entryPoint(pkgRel),
+      exports: extractExports(root, entry.path, entry.content),
       fanIn: 0,
       fanOut: 0,
     });
@@ -53,6 +85,7 @@ export function parseRepository(rootPath: string): ParseResult {
 
   const edges: Edge[] = [];
   const edgeKeys = new Set<string>();
+  const routes: ParseResult["routes"] = [];
   const unresolvedImports: ParseResult["coverage"]["unresolvedImports"] = [];
 
   let totalImports = 0;
@@ -63,6 +96,7 @@ export function parseRepository(rootPath: string): ParseResult {
   let reexportsFound = 0;
   let reexportsResolved = 0;
 
+  /** Auto-generated docstring. */
   function addEdge(from: string, to: string, kind: EdgeKind, typeOnly: boolean): void {
     const key = `${from}\u0000${to}\u0000${kind}\u0000${typeOnly}`;
     if (edgeKeys.has(key)) return;
@@ -81,6 +115,10 @@ export function parseRepository(rootPath: string): ParseResult {
       });
       fileRecords.delete(entry.path);
       continue;
+    }
+
+    for (const r of adapterFor(entry.path).routes(entry.path, entry.content)) {
+      routes.push(r);
     }
 
     for (const item of extracted) {
@@ -126,12 +164,13 @@ export function parseRepository(rootPath: string): ParseResult {
   const folders = new Set(files.map((file) => file.folder)).size;
 
   return {
-    version: 1,
+    version: 4,
     root,
     adapter: adapter.name,
     generatedAt: new Date().toISOString(),
     files,
     edges,
+    routes: routes.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method)),
     skipped: allSkipped,
     coverage: {
       totalImports,

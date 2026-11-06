@@ -26,10 +26,12 @@ export const EXCLUDED_DIRS = new Set([
   "vendor",
 ]);
 
+/** Auto-generated docstring. */
 export function isSourceFile(relPath: string): boolean {
   return SOURCE_EXTENSIONS.has(path.extname(relPath).toLowerCase());
 }
 
+/** Auto-generated docstring. */
 export function isExcludedPath(relPath: string): boolean {
   return relPath.split("/").some((part) => EXCLUDED_DIRS.has(part) || part.startsWith("."));
 }
@@ -38,6 +40,7 @@ export type SkippedFile = { path: string; reason: string };
 
 export const MAX_FILE_BYTES = 1_000_000;
 
+/** Auto-generated docstring. */
 export function walkRepository(
   root: string,
   extraExcludedDirs: string[] = [],
@@ -46,6 +49,7 @@ export function walkRepository(
   const files: string[] = [];
   const skipped: SkippedFile[] = [];
 
+  /** Auto-generated docstring. */
   function recurse(dir: string): void {
     let entries: fs.Dirent[];
     try {

@@ -6,6 +6,7 @@ import { useAuth } from "@clerk/nextjs";
 
 import { getClientEnv } from "@/lib/env";
 
+/** Auto-generated docstring. */
 export function useSupabaseClient() {
   const { getToken } = useAuth();
   const env = getClientEnv();
@@ -13,7 +14,10 @@ export function useSupabaseClient() {
   return useMemo(
     () =>
       createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
-        accessToken: async () => (await getToken()) ?? null,
+        accessToken: async () => {
+        if (typeof window === "undefined") return null;
+        return (await getToken()) ?? null;
+      },
       }),
     [env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, getToken],
   );

@@ -1,4 +1,4 @@
-export type EdgeKind = "import" | "reexport" | "dynamic";
+export type EdgeKind = "import" | "reexport" | "dynamic" | "require";
 
 export type FileRecord = {
   path: string;
@@ -6,8 +6,16 @@ export type FileRecord = {
   lines: number;
   hash: string;
   role: string | null;
+  entryReason: string | null;
+  exports: string[];
   fanIn: number;
   fanOut: number;
+};
+
+export type Route = {
+  method: string;
+  path: string;
+  filePath: string;
 };
 
 export type Edge = {
@@ -47,6 +55,7 @@ export type ParseResult = {
   generatedAt: string;
   files: FileRecord[];
   edges: Edge[];
+  routes: Route[];
   skipped: SkippedFile[];
   coverage: Coverage;
   summary: {

@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
-  useReactFlow,
   useUpdateNodeInternals,
+  useReactFlow,
   type Node,
   type Edge as RFEdge,
   Position,
@@ -15,7 +15,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
 
-import { sampleParseResult } from "@/lib/sample-data";
+import type { ParseResult } from "@/parser/types";
 import {
   buildFoldedNodes,
   foldDirectories,
@@ -28,10 +28,12 @@ const MAX_ROWS = Infinity;
 const MAX_PANEL_HEIGHT = 360;
 
 type MapCanvasProps = {
+  data: ParseResult;
   selected: string | null;
   onSelect: (id: string | null) => void;
   hovered: string | null;
   onHover: (id: string | null) => void;
+  activeCategory?: string | null;
 };
 
 type FolderData = {
@@ -45,6 +47,8 @@ type FolderData = {
   width: number;
   height: number;
   dimmed: boolean;
+  categoryMatchCount: number;
+  activeCategory: string | null;
   fileStats: Record<string, { fanIn: number; fanOut: number }>;
   connectedFiles: Set<string>;
   selected: string | null;
@@ -57,6 +61,7 @@ type FolderData = {
   onVisibilityChange?: (id: string, vis: Map<string, "above" | "below" | "visible">) => void;
 };
 
+/** Auto-generated docstring. */
 function FolderNode({ data }: { data: FolderData }) {
   const d = data;
   const opacity = d.dimmed ? 0.25 : 1;
@@ -113,6 +118,7 @@ function FolderNode({ data }: { data: FolderData }) {
         <div className="truncate font-medium">{d.label}</div>
         <div className="font-mono text-[8px] text-zinc-500">
           {d.fileCount} files · <span className="text-green-600 dark:text-green-400">←{d.fanIn}</span>  <span className="text-amber-600 dark:text-amber-400">{d.fanOut}→</span>
+          {d.activeCategory ? <span className="ml-1 text-blue-600 dark:text-blue-400">{d.categoryMatchCount}/{d.fileCount}</span> : null}
         </div>
         <Handle type="source" position={Position.Right} />
       </div>
@@ -142,6 +148,7 @@ function FolderNode({ data }: { data: FolderData }) {
         <span className="truncate">{d.label}</span>
         <span className="shrink-0 font-mono text-[8px] text-zinc-500">
           {d.fileCount} · <span className="text-green-600 dark:text-green-400">←{d.fanIn}</span>  <span className="text-amber-600 dark:text-amber-400">{d.fanOut}→</span>
+          {d.activeCategory ? <span className="ml-1 text-blue-600 dark:text-blue-400">{d.categoryMatchCount}/{d.fileCount}</span> : null}
         </span>
       </div>
       <div className="relative min-h-[14px] px-2 py-0.5 font-mono text-[10px] text-zinc-500">{above > 0 ? `${above} files above` : ""}
@@ -191,10 +198,10 @@ function FolderNode({ data }: { data: FolderData }) {
 
 const nodeTypes = { folder: FolderNode };
 
-function Inner({ selected, onSelect, hovered, onHover }: MapCanvasProps) {
-  const rf = useReactFlow();
+/** Auto-generated docstring. */
+function Inner({ data, selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
   const updateNodeInternals = useUpdateNodeInternals();
-  const data = sampleParseResult;
+  const { fitView } = useReactFlow();
 
   const surviving = useMemo(() => foldDirectories(data.files), [data]);
   const survivingSet = useMemo(() => new Set(surviving), [surviving]);
@@ -203,7 +210,7 @@ function Inner({ selected, onSelect, hovered, onHover }: MapCanvasProps) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [visibilityMap, setVisibilityMap] = useState<Map<string, Map<string, "above" | "below" | "visible">>>(new Map());
   const toggle = useCallback((id: string) => {
-    setOpen((prev) => {
+      setOpen((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -220,6 +227,8 @@ function Inner({ selected, onSelect, hovered, onHover }: MapCanvasProps) {
   const selectFile = useCallback((file: string) => {
     onSelect(selected === file ? null : file);
   }, [selected, onSelect]);
+
+
 
   const autoOpenedRef = useRef<Set<string>>(new Set());
 
@@ -279,7 +288,11 @@ function Inner({ selected, onSelect, hovered, onHover }: MapCanvasProps) {
     };
   }, [selected, data.files, data.edges, survivingSet]);
 
-
+  const roleByPath = useMemo(() => new Map(data.files.map((f) => [f.path, f.role])), [data]);
+  const fileStats = useMemo(
+    () => Object.fromEntries(data.files.map((f) => [f.path, { fanIn: f.fanIn, fanOut: f.fanOut }])),
+    [data.files],
+  );
   const connectedFiles = useMemo(() => {
     const set = new Set<string>();
     if (!selected) return set;
@@ -405,14 +418,20 @@ const connectedNodes = useMemo(() => {
       let height: number;
       if (collapsed) {
         width = Math.max(120, label.length * 7 + 24);
-        height = Math.max(36, 32 + Math.min(n.fanIn, 60));
+        height = Math.max(44, 40 + Math.min(n.fanIn, 60));
       } else {
         const visibleRows = Math.min(n.files.length, MAX_ROWS);
         const longest = n.files.reduce((m, f) => Math.max(m, (f.split("/").pop() ?? "").length), 0);
         width = Math.max(200, longest * 7 + 60);
         height = Math.min(MAX_PANEL_HEIGHT, 20 + visibleRows * 14 + (n.files.length > MAX_ROWS ? 14 : 0) + 2);
       }
-      const fileStats = Object.fromEntries(data.files.map((f) => [f.path, { fanIn: f.fanIn, fanOut: f.fanOut }]));
+      const categoryMatchCount = activeCategory
+        ? n.files.filter((p) => {
+            const role = roleByPath.get(p) ?? null;
+            const key = role ? role : "Unclassified";
+            return (key || "Unclassified") === activeCategory;
+          }).length
+        : 0;
       const dimmed = false;
       return {
         id: n.id,
@@ -429,6 +448,8 @@ const connectedNodes = useMemo(() => {
           width,
           height,
           dimmed,
+          categoryMatchCount,
+          activeCategory: activeCategory ?? null,
           fileStats,
           connectedFiles: new Set<string>(),
           selected: null,
@@ -452,7 +473,7 @@ const connectedNodes = useMemo(() => {
         height,
       };
     });
-  }, [nodesInfo, open, labels, toggle, selectFile, data.files, updateNodeInternals, onHover, onSelect]);
+  }, [nodesInfo, open, labels, toggle, selectFile, fileStats, updateNodeInternals, onHover, onSelect, activeCategory, roleByPath]);
 
   const baseEdges: RFEdge[] = useMemo(() => {
     const seen = new Set<string>();
@@ -499,8 +520,16 @@ const connectedNodes = useMemo(() => {
   }, [structuralNodes, baseEdges]);
 
   const displayNodes = useMemo(() => {
+    const activeNodeIds = new Set<string>();
+    if (activeCategory) {
+      for (const n of layouted.nodes) {
+        if (((n.data as { categoryMatchCount?: number }).categoryMatchCount ?? 0) > 0) activeNodeIds.add(n.id);
+      }
+    }
     return layouted.nodes.map((n) => {
-      const dimmed = selected !== null && !connectedNodes.has(n.id);
+      const selectedDimmed = selected !== null && !connectedNodes.has(n.id);
+      const categoryDimmed = activeCategory !== null && !activeNodeIds.has(n.id);
+      const dimmed = selectedDimmed || categoryDimmed;
       return {
         ...n,
         data: {
@@ -508,10 +537,11 @@ const connectedNodes = useMemo(() => {
           dimmed,
           connectedFiles,
           selected,
+          activeCategory: activeCategory ?? null,
         },
       };
     });
-  }, [layouted.nodes, selected, connectedNodes, connectedFiles]);
+  }, [layouted.nodes, selected, connectedNodes, connectedFiles, activeCategory]);
 
   const hoveredNodes = useMemo(
     () => displayNodes.map((n) => ({ ...n, data: { ...n.data, hovered } })),
@@ -519,6 +549,17 @@ const connectedNodes = useMemo(() => {
   );
 
   const displayEdges: RFEdge[] = useMemo(() => {
+    const categoryNodeIds = new Set<string>();
+    if (activeCategory) {
+      for (const n of nodesInfo) {
+        const match = n.files.some((f) => {
+          const role = roleByPath.get(f) ?? null;
+          const key = role ? role : "Unclassified";
+          return (key || "Unclassified") === activeCategory;
+        });
+        if (match) categoryNodeIds.add(n.id);
+      }
+    }
     const seen = new Set<string>();
     const out: RFEdge[] = [];
     for (const e of data.edges) {
@@ -540,7 +581,9 @@ const connectedNodes = useMemo(() => {
         if (incomingEdgeKeys.has(key)) stroke = "#10b981";
         else if (outgoingEdgeKeys.has(key)) stroke = "#f59e0b";
       }
-      const dimmed = selected !== null && !bright;
+      const selectedDimmed = selected !== null && !bright;
+      const categoryDimmed = activeCategory !== null && !(categoryNodeIds.has(fromId) && categoryNodeIds.has(toId));
+      const dimmed = selectedDimmed || categoryDimmed;
       out.push({
         id: key,
         source: fromId,
@@ -551,19 +594,17 @@ const connectedNodes = useMemo(() => {
       });
     }
     return out;
-  }, [data, open, survivingSet, selected, connectedEdgeKeys, incomingEdgeKeys, outgoingEdgeKeys, visibilityMap]);
+  }, [data, open, survivingSet, selected, connectedEdgeKeys, incomingEdgeKeys, outgoingEdgeKeys, visibilityMap, activeCategory, nodesInfo, roleByPath]);
 
   useEffect(() => {
     for (const id of open) updateNodeInternals(id);
   }, [selected, open, visibilityMap, updateNodeInternals]);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      const { zoom } = rf.getViewport();
-      rf.fitView({ padding: 0.1, maxZoom: zoom, duration: 200 });
-    }, 50);
-    return () => clearTimeout(t);
-  }, [open, rf]);
+    const raf = requestAnimationFrame(() => fitView({ padding: 0.1 }));
+    return () => cancelAnimationFrame(raf);
+  }, [open, fitView]);
+
 
   return (
     <div className="h-full w-full">
@@ -590,10 +631,11 @@ const connectedNodes = useMemo(() => {
   );
 }
 
-export function MapCanvas({ selected, onSelect, hovered, onHover }: MapCanvasProps) {
+/** Auto-generated docstring. */
+export function MapCanvas({ data, selected, onSelect, hovered, onHover, activeCategory = null }: MapCanvasProps) {
   return (
     <ReactFlowProvider>
-      <Inner selected={selected} onSelect={onSelect} hovered={hovered} onHover={onHover} />
+      <Inner data={data} selected={selected} onSelect={onSelect} hovered={hovered} onHover={onHover} activeCategory={activeCategory} />
     </ReactFlowProvider>
   );
 }

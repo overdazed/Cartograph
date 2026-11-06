@@ -2,6 +2,7 @@ import { ClerkProvider, Show, SignInButton, SignUpButton, UserButton } from "@cl
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
+import Script from "next/script";
 
 import { getServerEnv } from "@/lib/env";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -46,10 +47,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-      </head>
+      <head />
       <body className="min-h-full flex flex-col">
+        <Script id="theme-init" strategy="beforeInteractive" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <ClerkProvider
           signInFallbackRedirectUrl="/"
           signUpFallbackRedirectUrl="/"

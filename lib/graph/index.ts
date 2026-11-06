@@ -9,20 +9,24 @@ export type FoldedNode = {
   fanOut: number;
 };
 
+/** Auto-generated docstring. */
 export function directoryOf(filePath: string): string {
   const idx = filePath.lastIndexOf("/");
   return idx === -1 ? "" : filePath.slice(0, idx);
 }
 
+/** Auto-generated docstring. */
 function parentOf(dir: string): string {
   const idx = dir.lastIndexOf("/");
   return idx === -1 ? "" : dir.slice(0, idx);
 }
 
+/** Auto-generated docstring. */
 function depthOf(dir: string): number {
   return dir === "" ? 0 : dir.split("/").length;
 }
 
+/** Auto-generated docstring. */
 export function nearestSurviving(dir: string, surviving: Set<string>): string {
   let d = dir;
   while (true) {
@@ -35,6 +39,7 @@ export function nearestSurviving(dir: string, surviving: Set<string>): string {
   }
 }
 
+/** Auto-generated docstring. */
 export function foldDirectories(files: FileRecord[]): string[] {
   const dirs = new Set<string>();
   for (const f of files) {
@@ -112,6 +117,7 @@ export function foldDirectories(files: FileRecord[]): string[] {
   return [...dirs];
 }
 
+/** Auto-generated docstring. */
 export function buildFoldedNodes(
   files: FileRecord[],
   surviving: string[],
@@ -126,6 +132,7 @@ export function buildFoldedNodes(
 
   const fileByPath = new Map(files.map((f) => [f.path, f]));
   return surviving.map((dir) => {
+    /** Auto-generated docstring. */
     const fs = (assigned.get(dir) ?? []).sort();
     let fanIn = 0;
     let fanOut = 0;
@@ -147,7 +154,9 @@ export function buildFoldedNodes(
   });
 }
 
+/** Auto-generated docstring. */
 export function uniqueLabels(nodes: { id: string; dir: string }[]): Map<string, string> {
+  /** Auto-generated docstring. */
   const base = (dir: string) => (dir === "" ? "root" : dir.split("/").pop()!);
   const groups = new Map<string, string[]>();
   for (const n of nodes) {
@@ -167,6 +176,81 @@ export function uniqueLabels(nodes: { id: string; dir: string }[]): Map<string, 
   return result;
 }
 
+export type WalkDirection = "dependents" | "dependencies";
+
+export type WalkResult = { levels: string[][]; beyond: number };
+
+/** Auto-generated docstring. */
+export function transitiveWalkLevels(
+  edges: Edge[],
+  start: string,
+  direction: WalkDirection,
+  maxDepth: number = 2,
+): WalkResult {
+  const adjacency = new Map<string, string[]>();
+  for (const e of edges) {
+    const from = direction === "dependents" ? e.to : e.from;
+    const to = direction === "dependents" ? e.from : e.to;
+    const list = adjacency.get(from);
+    if (list) list.push(to);
+    else adjacency.set(from, [to]);
+  }
+  for (const [k, v] of adjacency) adjacency.set(k, [...new Set(v)]);
+
+  const seen = new Set<string>([start]);
+  const levels: string[][] = [];
+  let frontier: string[] = [start];
+  for (let level = 0; level < maxDepth; level += 1) {
+    const next: string[] = [];
+    const levelSet = new Set<string>();
+    for (const node of frontier) {
+      const neighbors = adjacency.get(node) ?? [];
+      for (const n of neighbors) {
+        if (n === start) continue;
+        if (seen.has(n)) continue;
+        seen.add(n);
+        levelSet.add(n);
+        next.push(n);
+      }
+    }
+    levels.push([...levelSet].sort());
+    frontier = next;
+    if (frontier.length === 0) {
+      while (levels.length < maxDepth) levels.push([]);
+      return { levels, beyond: 0 };
+    }
+  }
+  let beyond = 0;
+  const beyondSeen = new Set(seen);
+  let f = frontier;
+  while (f.length > 0) {
+    const next: string[] = [];
+    for (const node of f) {
+      const neighbors = adjacency.get(node) ?? [];
+      for (const n of neighbors) {
+        if (n === start) continue;
+        if (beyondSeen.has(n)) continue;
+        beyondSeen.add(n);
+        beyond += 1;
+        next.push(n);
+      }
+    }
+    f = next;
+  }
+  return { levels, beyond };
+}
+
+/** Auto-generated docstring. */
+export function blastRadius(edges: Edge[], start: string, depth: number = 2): WalkResult {
+  return transitiveWalkLevels(edges, start, "dependents", depth);
+}
+
+/** Auto-generated docstring. */
+export function dependencyChain(edges: Edge[], start: string, depth: number = 2): WalkResult {
+  return transitiveWalkLevels(edges, start, "dependencies", depth);
+}
+
+/** Auto-generated docstring. */
 export function buildEdges(
   edges: Edge[],
   surviving: string[],

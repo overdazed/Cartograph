@@ -1,19 +1,305 @@
-// Adapter interface. Defined here so parser core never imports framework code;
-// adapters register themselves by calling registerAdapter.
+import fs from "node:fs";
+import path from "node:path";
+
+import { Project, SyntaxKind } from "ts-morph";
+
+import type { Route } from "./types.ts";
+
 export interface FrameworkAdapter {
   name: string;
   detect(rootPath: string): boolean;
   extraExcludedDirs(): string[];
+  entryPoint(filePath: string): string | null;
+  role(filePath: string, content?: string): string | null;
+  routes(filePath: string, content: string): Route[];
+}
+
+/** Auto-generated docstring. */
+function testEntryReason(filePath: string): string | null {
+  /** Auto-generated docstring. */
+  const base = (filePath.split("/").pop() ?? "").toLowerCase();
+  if (/\.(test|spec)\./i.test(base)) return "reached by the test runner";
+  if (/(^|\/)(__tests?__|tests?)(\/|$)/i.test(filePath)) return "reached by the test runner";
+  return null;
+}
+
+/** Auto-generated docstring. */
+function commonEntryReason(filePath: string): string | null {
+  const t = testEntryReason(filePath);
+  if (t) return t;
+  /** Auto-generated docstring. */
+  const base = (filePath.split("/").pop() ?? "").toLowerCase();
+  if (/\.(config|rc)(\.[a-z0-9]+)?$/i.test(base)) return "config file";
+  if (base.startsWith(".") && base.includes("rc")) return "config file";
+  return null;
+}
+/** Auto-generated docstring. */
+function readPackageJson(dirPath: string): Record<string, unknown> | null {
+  try {
+    const raw = fs.readFileSync(path.join(dirPath, "package.json"), "utf8");
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+/** Auto-generated docstring. */
+function depsOf(pkg: Record<string, unknown> | null): Record<string, string> {
+  if (!pkg) return {};
+  return {
+    ...((pkg.dependencies as Record<string, string>) ?? {}),
+    ...((pkg.devDependencies as Record<string, string>) ?? {}),
+  };
 }
 
 export const fallbackAdapter: FrameworkAdapter = {
   name: "fallback",
   detect: () => true,
   extraExcludedDirs: () => [],
+  entryPoint: (filePath: string) => {
+    return commonEntryReason(filePath);
+  },
+  role: (filePath: string, content?: string) => {
+    const p = filePath.toLowerCase();
+    /** Auto-generated docstring. */
+    const base = (filePath.split("/").pop() ?? "").toLowerCase();
+    const name = base.replace(/\.[^.]+$/, "");
+    if (name === "middleware") return "Middleware";
+    if (name.startsWith("instrumentation")) return "Instrumentation";
+    if (["robots", "sitemap", "manifest", "favicon", "icon", "apple-icon", "opengraph-image", "twitter-image"].includes(name)) return "Metadata files";
+    if (/^next\.config\./i.test(base)) return "Config files";
+    if (/(^|\/)components(\/|$)/.test(p)) return "Components";
+    if (/(^|\/)hooks(\/|$)/.test(p)) return "Hooks";
+    if (content && /["']use server["']/.test(content)) return "Server actions";
+    if (/(\.test\.|\.spec\.|__tests?__|\/tests?\/)/i.test(filePath)) return "Tests";
+    return null;
+  },
+  routes: () => [],
 };
 
-const adapters: FrameworkAdapter[] = [fallbackAdapter];
+export const nextAdapter: FrameworkAdapter = {
+  name: "nextjs",
+  detect: (dirPath: string) => {
+    const deps = depsOf(readPackageJson(dirPath));
+    return Boolean(deps.next);
+  },
+  extraExcludedDirs: () => [],
+  entryPoint: (filePath: string) => {
+    const c = commonEntryReason(filePath);
+    if (c) return c;
+    const p = filePath.toLowerCase();
+    /** Auto-generated docstring. */
+    const base = (filePath.split("/").pop() ?? "").toLowerCase();
+    const name = base.replace(/\.[^.]+$/, "");
+    if (name === "middleware" && (/^middleware\./.test(base) || /^src\/middleware\./.test(p))) {
+      return "Next.js middleware";
+    }
+    if (name === "next.config" || base.startsWith("next.config.")) return "Next.js config";
+    if (/(^|\/)app(\/|$)/.test(p)) {
+      if (["page", "layout", "template", "loading", "error", "not-found", "route", "default"].includes(name)) {
+        return "Next.js route entry";
+      }
+      return null;
+    }
+    if (/^(src\/)?pages(\/|$)/.test(p)) {
+      return "Next.js route";
+    }
+    return null;
+  },
+  role: (filePath: string, content?: string) => {
+    const p = filePath.toLowerCase();
+    /** Auto-generated docstring. */
+    const base = (filePath.split("/").pop() ?? "").toLowerCase();
+    const name = base.replace(/\.[^.]+$/, "");
+    if (/(^|\/)app(\/|$)/.test(p)) {
+      if (name === "page") return "Page routes";
+      if (name === "route") return "API endpoints";
+      if (name === "layout") return "Layouts";
+      if (["loading", "error", "not-found", "template", "default"].includes(name)) return "Loading & error UI";
+    }
+    if (/^(src\/)?pages(\/|$)/.test(p)) {
+      if (/(^|\/)pages\/api(\/|$)/.test(p)) return "API endpoints";
+      return "Page routes";
+    }
+    if (name === "middleware") return "Middleware";
+    if (name.startsWith("instrumentation")) return "Instrumentation";
+    if (["robots", "sitemap", "manifest", "favicon", "icon", "apple-icon", "opengraph-image", "twitter-image"].includes(name)) return "Metadata files";
+    if (/^next\.config\./i.test(base)) return "Config files";
+    if (/(\.test\.|\.spec\.|__tests?__|\/tests?\/)/i.test(filePath)) return "Tests";
+    if (/(^|\/)components(\/|$)/.test(p)) return "Components";
+    if (/(^|\/)hooks(\/|$)/.test(p)) return "Hooks";
+    if (content && /["']use server["']/.test(content)) return "Server actions";
+    return null;
+  },
+  routes: (filePath: string, content: string): Route[] => {
+    const p = filePath.toLowerCase();
+    /** Auto-generated docstring. */
+    const base = (filePath.split("/").pop() ?? "").toLowerCase();
+    const name = base.replace(/\.[^.]+$/, "");
+    if (name !== "route" || !/(^|\/)app(\/|$)/.test(p)) return [];
+    const project = new Project({ useInMemoryFileSystem: true, skipAddingFilesFromTsConfig: true });
+    const sourceFile = project.createSourceFile(filePath, content, { overwrite: true });
+    const exported = sourceFile.getExportedDeclarations();
+    const methods: string[] = [];
+    const httpMethods = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]);
+    for (const [exportName] of exported) {
+      if (httpMethods.has(exportName)) methods.push(exportName);
+    }
+    if (methods.length === 0) return [];
+    const parts = filePath.split("/");
+    let appIndex = -1;
+    const appIndices = parts
+      .map((seg, i) => (seg.toLowerCase() === "app" ? i : -1))
+      .filter((i) => i >= 0);
+    const srcAppIndex = appIndices.find((i) => i > 0 && parts[i - 1]?.toLowerCase() === "src");
+    if (srcAppIndex !== undefined) appIndex = srcAppIndex;
+    else if (appIndices.length > 0) appIndex = appIndices[appIndices.length - 1];
+    if (appIndex === -1) return [];
+    if (appIndex === -1) {
+      const srcIndex = parts.findIndex((seg) => seg.toLowerCase() === "src");
+      if (srcIndex !== -1 && parts[srcIndex + 1]?.toLowerCase() === "app") appIndex = srcIndex + 1;
+    }
+    const segments = parts
+      .slice(appIndex + 1, -1)
+      .filter((seg) => !/^\(.*\)$/.test(seg));
+    const routePath = segments.length === 0 ? "/" : "/" + segments.join("/");
+    return methods.map((method) => ({ method, path: routePath, filePath }));
+  },
+};
 
+export const nestAdapter: FrameworkAdapter = {
+  name: "nestjs",
+  detect: (dirPath: string) => {
+    const deps = depsOf(readPackageJson(dirPath));
+    return Boolean(deps["@nestjs/core"] || deps["@nestjs/common"]);
+  },
+  extraExcludedDirs: () => [],
+  entryPoint: (filePath: string) => commonEntryReason(filePath),
+  role: (filePath: string) => {
+    /** Auto-generated docstring. */
+    const base = (filePath.split("/").pop() ?? "").toLowerCase();
+    if (/\.controller\./i.test(base)) return "Controllers";
+    if (/\.service\./i.test(base)) return "Services";
+    if (/\.module\./i.test(base)) return "Modules";
+    if (/\.entity\./i.test(base)) return "Entities";
+    return null;
+  },
+  routes: (filePath: string, content: string): Route[] => {
+    /** Auto-generated docstring. */
+    const base = (filePath.split("/").pop() ?? "").toLowerCase();
+    if (!/\.controller\./i.test(base)) return [];
+    const project = new Project({ useInMemoryFileSystem: true, skipAddingFilesFromTsConfig: true });
+    const sourceFile = project.createSourceFile(filePath, content, { overwrite: true });
+    const httpMap: Record<string, string> = {
+      Get: "GET",
+      Post: "POST",
+      Put: "PUT",
+      Delete: "DELETE",
+      Patch: "PATCH",
+      Options: "OPTIONS",
+      Head: "HEAD",
+      All: "ALL",
+    };
+    const out: Route[] = [];
+    for (const cls of sourceFile.getClasses()) {
+      const controllerDec = cls.getDecorator("Controller");
+      if (!controllerDec) continue;
+      const ctrlArg = controllerDec.getArguments()[0];
+      let prefix = "";
+      if (ctrlArg) {
+        if (!ctrlArg.isKind(SyntaxKind.StringLiteral)) continue;
+        prefix = ctrlArg.getLiteralValue();
+      }
+      for (const method of cls.getMethods()) {
+        for (const dec of method.getDecorators()) {
+          const httpMethod = httpMap[dec.getName()];
+          if (!httpMethod) continue;
+          const arg = dec.getArguments()[0];
+          let sub = "";
+          if (arg) {
+            if (!arg.isKind(SyntaxKind.StringLiteral)) continue;
+            sub = arg.getLiteralValue();
+          }
+          const segments = [prefix, sub]
+            .map((s) => s.replace(/^\/+|\/+$/g, ""))
+            .filter((s) => s.length > 0);
+          const routePath = segments.length === 0 ? "/" : "/" + segments.join("/");
+          out.push({ method: httpMethod, path: routePath, filePath });
+        }
+      }
+    }
+    return out;
+  },
+};
+
+export const expressAdapter: FrameworkAdapter = {
+  name: "express",
+  detect: (dirPath: string) => {
+    const deps = depsOf(readPackageJson(dirPath));
+    return Boolean(deps.express);
+  },
+  extraExcludedDirs: () => [],
+  entryPoint: (filePath: string) => commonEntryReason(filePath),
+  role: (filePath: string) => {
+    const p = filePath.toLowerCase();
+    const parts = p.split("/");
+    /** Auto-generated docstring. */
+    const folderRole = (segment: string): string | null => {
+      if (["routes", "route", "routers", "router"].includes(segment)) return "Routers";
+      if (["controllers", "controller"].includes(segment)) return "Controllers";
+      if (["services", "service"].includes(segment)) return "Services";
+      if (["models", "model"].includes(segment)) return "Models";
+      if (["middleware", "middlewares"].includes(segment)) return "Middleware";
+      return null;
+    };
+    for (const segment of parts.slice(0, -1)) {
+      const r = folderRole(segment);
+      if (r) return r;
+    }
+    return null;
+  },
+  routes: () => [],
+};
+
+export const reactAdapter: FrameworkAdapter = {
+  name: "react",
+  detect: (dirPath: string) => {
+    const deps = depsOf(readPackageJson(dirPath));
+    return Boolean(deps.react);
+  },
+  extraExcludedDirs: () => [],
+  entryPoint: (filePath: string) => commonEntryReason(filePath),
+  role: (filePath: string, content?: string) => fallbackAdapter.role(filePath, content),
+  routes: () => [],
+};
+
+export const docusaurusAdapter: FrameworkAdapter = {
+  name: "docusaurus",
+  detect: (dirPath: string) => {
+    const deps = depsOf(readPackageJson(dirPath));
+    return Boolean(deps["@docusaurus/core"]);
+  },
+  extraExcludedDirs: () => [],
+  entryPoint: (filePath: string) => {
+    const c = commonEntryReason(filePath);
+    if (c) return c;
+    const p = filePath.toLowerCase();
+    /** Auto-generated docstring. */
+    const base = (filePath.split("/").pop() ?? "").toLowerCase();
+    const name = base.replace(/\.[^.]+$/, "");
+    if (base.startsWith("docusaurus.config.")) return "Docusaurus config";
+    if (/(^|\/)src\/pages(\/|$)/.test(p)) return "Docusaurus page";
+    if (/(^|\/)docs(\/|$)/.test(p)) return "Docusaurus doc";
+    if (name === "index" && p.includes("/pages/")) return "Docusaurus page";
+    return null;
+  },
+  role: (filePath: string, content?: string) => fallbackAdapter.role(filePath, content),
+  routes: () => [],
+};
+
+const adapters: FrameworkAdapter[] = [nextAdapter, nestAdapter, expressAdapter, docusaurusAdapter, reactAdapter, fallbackAdapter];
+
+/** Auto-generated docstring. */
 export function selectAdapter(rootPath: string): FrameworkAdapter {
   for (const adapter of adapters) {
     if (adapter.detect(rootPath)) return adapter;
@@ -21,6 +307,24 @@ export function selectAdapter(rootPath: string): FrameworkAdapter {
   return fallbackAdapter;
 }
 
+/** Auto-generated docstring. */
 export function registerAdapter(adapter: FrameworkAdapter): void {
   adapters.splice(adapters.length - 1, 0, adapter);
+}
+
+/** Auto-generated docstring. */
+export function adapterForFile(root: string, relPath: string): FrameworkAdapter {
+  let dir = path.dirname(path.join(root, relPath));
+  while (true) {
+    if (fs.existsSync(path.join(dir, "package.json"))) {
+      const selected = selectAdapter(dir);
+      if (selected.name !== "fallback") return selected;
+      if (dir === root) return selected;
+    }
+    if (dir === root) break;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return selectAdapter(root);
 }
