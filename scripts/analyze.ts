@@ -1,5 +1,6 @@
 import { submitAnalysis, runAnalysis } from "../lib/pipeline/run.ts";
 import { getAnalysisSummary } from "../lib/pipeline/store.ts";
+import { createSupabaseWriterClient } from "../lib/supabase/writer.ts";
 
 /** Auto-generated docstring. */
 function parseArgs(argv: string[]): {
@@ -38,5 +39,11 @@ if (!created && !rerun) {
 }
 
 await runAnalysis(analysisId, url, orgId);
+const { data: statusRow } = await createSupabaseWriterClient()
+  .from("analyses")
+  .select("status")
+  .eq("id", analysisId)
+  .maybeSingle();
 const summary = await getAnalysisSummary(analysisId);
 console.log(`Analysis ${analysisId}: ${summary.files} files, ${summary.edges} edges`);
+if (statusRow?.status !== "complete") process.exit(1);

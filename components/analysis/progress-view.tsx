@@ -39,6 +39,12 @@ export function ProgressView({
   const [message, setMessage] = useState(initialMessage ?? "Starting");
   const [status, setStatus] = useState(initialStatus);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (status === "complete" || status === "failed") return;
+    const id = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(id);
+  }, [status]);
   const [rerunError, setRerunError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -78,7 +84,7 @@ export function ProgressView({
     };
   }, [analysisId, supabase, router]);
 
-  const stale = isStale(status, updatedAt);
+  const stale = isStale(status, updatedAt) || tick < 0;
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4 p-6">

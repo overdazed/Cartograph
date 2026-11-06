@@ -33,11 +33,19 @@ export function DashboardAnalyses({ initialRows }: { initialRows: Row[] }) {
   const supabase = useSupabaseClient();
   const router = useRouter();
   const [rows, setRows] = useState(initialRows);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRows(initialRows);
   }, [initialRows]);
+
+  useEffect(() => {
+    const active = rows.some((r) => r.status !== "complete" && r.status !== "failed");
+    if (!active) return;
+    const id = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(id);
+  }, [rows]);
 
   useEffect(() => {
     const channels = rows
@@ -61,7 +69,20 @@ export function DashboardAnalyses({ initialRows }: { initialRows: Row[] }) {
               ),
             );
           })
-          .subscribe();
+          .subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+              supabase
+                .from("analyses")
+                .select("id, repository_url, status, stage, stage_message, commit_sha, error, created_at, updated_at")
+                .eq("id", r.id)
+                .single()
+                .then(({ data }) => {
+                  if (data) {
+                    setRows((prev) => prev.map((row) => (row.id === r.id ? (data as Row) : row)));
+                  }
+                });
+            }
+          });
         return channel;
       });
 
