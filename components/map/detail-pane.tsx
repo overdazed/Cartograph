@@ -6,7 +6,6 @@ import type { ParseResult, FileRecord } from "@/parser/types";
 import { foldDirectories, buildFoldedNodes, blastRadius, dependencyChain } from "@/lib/graph";
 import { InsightsPanel } from "@/components/map/insights-panel";
 import { rerunAnalysis } from "@/app/actions";
-import { ALL_FRAMEWORK_CATEGORIES } from "@/lib/rail-taxonomy";
 
 type DetailPaneProps = {
   data: ParseResult;
@@ -72,7 +71,7 @@ export function DetailPane({
     [data],
   );
   const unidentifiedCount = useMemo(
-    () => data.files.filter((f) => !f.role || !ALL_FRAMEWORK_CATEGORIES.includes(f.role)).length,
+    () => data.files.filter((f) => !f.role).length,
     [data],
   );
 

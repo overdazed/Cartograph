@@ -27,6 +27,16 @@ where retained.organization_id = p.organization_id
   and retained.repository_url = p.repository_url
   and retained.id < p.id;
 
+-- Resolve any duplicate analyses created by project consolidation before
+-- enforcing one analysis per project, keeping the newest (id breaks ties).
+delete from public.analyses a
+using public.analyses b
+where a.project_id = b.project_id
+  and (
+    a.created_at < b.created_at
+    or (a.created_at = b.created_at and a.id < b.id)
+  );
+
 -- unique constraint: one analysis per project (repository)
 alter table public.analyses
   add constraint analyses_one_per_project unique (project_id);

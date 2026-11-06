@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import type { ParseResult } from "@/parser/types";
 import { MapCanvas } from "@/components/map/map-canvas";
 import { DetailPane } from "@/components/map/detail-pane";
-import { ALL_FRAMEWORK_CATEGORIES, railCategoriesFor } from "@/lib/rail-taxonomy";
+import { railCategoriesFor } from "@/lib/rail-taxonomy";
 
 const CATEGORY_COLORS = [
   "#3b82f6",

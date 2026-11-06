@@ -153,7 +153,7 @@ export const nextAdapter: FrameworkAdapter = {
       .filter((i) => i >= 0);
     const srcAppIndex = appIndices.find((i) => i > 0 && parts[i - 1]?.toLowerCase() === "src");
     if (srcAppIndex !== undefined) appIndex = srcAppIndex;
-    else if (appIndices.length > 0) appIndex = appIndices[0];
+    else if (appIndices.length > 0) appIndex = appIndices[appIndices.length - 1];
     if (appIndex === -1) return [];
     if (appIndex === -1) {
       const srcIndex = parts.findIndex((seg) => seg.toLowerCase() === "src");

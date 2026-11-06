@@ -16,7 +16,6 @@ import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
 
 import type { ParseResult } from "@/parser/types";
-import { ALL_FRAMEWORK_CATEGORIES } from "@/lib/rail-taxonomy";
 import {
   buildFoldedNodes,
   foldDirectories,
@@ -426,7 +425,7 @@ const connectedNodes = useMemo(() => {
       const categoryMatchCount = activeCategory
         ? n.files.filter((p) => {
             const role = roleByPath.get(p) ?? null;
-            const key = role && ALL_FRAMEWORK_CATEGORIES.includes(role) ? role : "Unclassified";
+            const key = role ? role : "Unclassified";
             return (key || "Unclassified") === activeCategory;
           }).length
         : 0;
@@ -552,7 +551,7 @@ const connectedNodes = useMemo(() => {
       for (const n of nodesInfo) {
         const match = n.files.some((f) => {
           const role = roleByPath.get(f) ?? null;
-          const key = role && ALL_FRAMEWORK_CATEGORIES.includes(role) ? role : "Unclassified";
+          const key = role ? role : "Unclassified";
           return (key || "Unclassified") === activeCategory;
         });
         if (match) categoryNodeIds.add(n.id);
