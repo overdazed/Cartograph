@@ -1,3 +1,4 @@
+/** Auto-generated docstring. */
 export function getClientEnv() {
   const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,6 +21,7 @@ export function getClientEnv() {
   };
 }
 
+/** Auto-generated docstring. */
 export function getServerEnv() {
   const clerkSecretKey = process.env.CLERK_SECRET_KEY;
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;

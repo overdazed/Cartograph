@@ -9,20 +9,24 @@ export type FoldedNode = {
   fanOut: number;
 };
 
+/** Auto-generated docstring. */
 export function directoryOf(filePath: string): string {
   const idx = filePath.lastIndexOf("/");
   return idx === -1 ? "" : filePath.slice(0, idx);
 }
 
+/** Auto-generated docstring. */
 function parentOf(dir: string): string {
   const idx = dir.lastIndexOf("/");
   return idx === -1 ? "" : dir.slice(0, idx);
 }
 
+/** Auto-generated docstring. */
 function depthOf(dir: string): number {
   return dir === "" ? 0 : dir.split("/").length;
 }
 
+/** Auto-generated docstring. */
 export function nearestSurviving(dir: string, surviving: Set<string>): string {
   let d = dir;
   while (true) {
@@ -35,6 +39,7 @@ export function nearestSurviving(dir: string, surviving: Set<string>): string {
   }
 }
 
+/** Auto-generated docstring. */
 export function foldDirectories(files: FileRecord[]): string[] {
   const dirs = new Set<string>();
   for (const f of files) {
@@ -112,6 +117,7 @@ export function foldDirectories(files: FileRecord[]): string[] {
   return [...dirs];
 }
 
+/** Auto-generated docstring. */
 export function buildFoldedNodes(
   files: FileRecord[],
   surviving: string[],
@@ -126,6 +132,7 @@ export function buildFoldedNodes(
 
   const fileByPath = new Map(files.map((f) => [f.path, f]));
   return surviving.map((dir) => {
+    /** Auto-generated docstring. */
     const fs = (assigned.get(dir) ?? []).sort();
     let fanIn = 0;
     let fanOut = 0;
@@ -147,7 +154,9 @@ export function buildFoldedNodes(
   });
 }
 
+/** Auto-generated docstring. */
 export function uniqueLabels(nodes: { id: string; dir: string }[]): Map<string, string> {
+  /** Auto-generated docstring. */
   const base = (dir: string) => (dir === "" ? "root" : dir.split("/").pop()!);
   const groups = new Map<string, string[]>();
   for (const n of nodes) {
@@ -171,6 +180,7 @@ export type WalkDirection = "dependents" | "dependencies";
 
 export type WalkResult = { levels: string[][]; beyond: number };
 
+/** Auto-generated docstring. */
 export function transitiveWalkLevels(
   edges: Edge[],
   start: string,
@@ -230,14 +240,17 @@ export function transitiveWalkLevels(
   return { levels, beyond };
 }
 
+/** Auto-generated docstring. */
 export function blastRadius(edges: Edge[], start: string, depth: number = 2): WalkResult {
   return transitiveWalkLevels(edges, start, "dependents", depth);
 }
 
+/** Auto-generated docstring. */
 export function dependencyChain(edges: Edge[], start: string, depth: number = 2): WalkResult {
   return transitiveWalkLevels(edges, start, "dependencies", depth);
 }
 
+/** Auto-generated docstring. */
 export function buildEdges(
   edges: Edge[],
   surviving: string[],

@@ -10,6 +10,7 @@ type InsightsPanelProps = {
   onSelectFile?: (path: string) => void;
 };
 
+/** Auto-generated docstring. */
 export function InsightsPanel({ data, onSelectFile }: InsightsPanelProps) {
   const [open, setOpen] = useState(false);
   const insights = useMemo(() => computeInsights(data), [data]);

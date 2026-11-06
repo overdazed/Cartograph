@@ -19,12 +19,14 @@ type DetailPaneProps = {
   onTabChange: (tab: "structure" | "explanation") => void;
 };
 
+/** Auto-generated docstring. */
 function kindOf(path: string, file?: FileRecord): string {
   if (file?.role) return file.role;
   const idx = path.lastIndexOf(".");
   return idx === -1 ? "other" : path.slice(idx).toLowerCase();
 }
 
+/** Auto-generated docstring. */
 export function DetailPane({
   data,
   analysisId,
@@ -74,6 +76,7 @@ export function DetailPane({
     [data],
   );
 
+  /** Auto-generated docstring. */
   const edgeMarkers = (from: string, to: string): string => {
     const relevant = data.edges.filter((e) => e.from === from && e.to === to);
     const labels: string[] = [];
@@ -110,6 +113,7 @@ export function DetailPane({
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
   }, [selectedNode, fileByPath]);
 
+  /** Auto-generated docstring. */
   function PathButton({ path }: { path: string }) {
     const isHovered = hovered === path;
     const lastSlash = path.lastIndexOf("/");

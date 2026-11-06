@@ -17,12 +17,14 @@ type Props = {
   initialUpdatedAt: string;
 };
 
+/** Auto-generated docstring. */
 function isStale(status: string, updatedAt: string): boolean {
   if (status === "complete" || status === "failed") return false;
   const age = Date.now() - new Date(updatedAt).getTime();
   return age > 5 * 60 * 1000;
 }
 
+/** Auto-generated docstring. */
 export function ProgressView({
   analysisId,
   initialStage,

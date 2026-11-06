@@ -22,6 +22,7 @@ export const ALL_FRAMEWORK_CATEGORIES: string[] = [
   ...RAIL_TAXONOMY.nestjs.filter((c) => !RAIL_TAXONOMY.nextjs.includes(c)),
 ];
 
+/** Auto-generated docstring. */
 export function railCategoriesFor(adapter: string): string[] {
   return RAIL_TAXONOMY[adapter] ?? [];
 }

@@ -1,6 +1,7 @@
 import { submitAnalysis, runAnalysis } from "../lib/pipeline/run.ts";
 import { getAnalysisSummary } from "../lib/pipeline/store.ts";
 
+/** Auto-generated docstring. */
 function parseArgs(argv: string[]): {
   url: string;
   orgId: string;

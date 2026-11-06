@@ -17,6 +17,7 @@ type AnalysisRow = {
   updated_at: string;
 };
 
+/** Auto-generated docstring. */
 async function AnalysesPage() {
   await auth.protect();
   const supabase = createSupabaseServerClient();
@@ -24,6 +25,7 @@ async function AnalysesPage() {
     .from("analyses")
     .select("id, repository_url, status, stage, stage_message, commit_sha, error, created_at, updated_at")
     .order("created_at", { ascending: false });
+  /** Auto-generated docstring. */
   const rows = (data ?? []) as AnalysisRow[];
 
   return (

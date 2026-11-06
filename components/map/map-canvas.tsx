@@ -61,6 +61,7 @@ type FolderData = {
   onVisibilityChange?: (id: string, vis: Map<string, "above" | "below" | "visible">) => void;
 };
 
+/** Auto-generated docstring. */
 function FolderNode({ data }: { data: FolderData }) {
   const d = data;
   const opacity = d.dimmed ? 0.25 : 1;
@@ -197,6 +198,7 @@ function FolderNode({ data }: { data: FolderData }) {
 
 const nodeTypes = { folder: FolderNode };
 
+/** Auto-generated docstring. */
 function Inner({ data, selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
   const updateNodeInternals = useUpdateNodeInternals();
 
@@ -622,6 +624,7 @@ const connectedNodes = useMemo(() => {
   );
 }
 
+/** Auto-generated docstring. */
 export function MapCanvas({ data, selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
   return (
     <ReactFlowProvider>

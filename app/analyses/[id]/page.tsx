@@ -27,6 +27,7 @@ type AnalysisRow = {
   updated_at: string;
 };
 
+/** Auto-generated docstring. */
 async function loadAnalysis(id: string) {
   const supabase = createSupabaseServerClient();
   const { data: analysis, error: aErr } = await supabase
@@ -101,9 +102,13 @@ async function loadAnalysis(id: string) {
   }));
 
   const folders = new Set(fileRecords.map((f) => f.folder)).size;
+  /** Auto-generated docstring. */
   const totalImports = (analysis as AnalysisRow).imports_total ?? 0;
+  /** Auto-generated docstring. */
   const externalImports = (analysis as AnalysisRow).imports_resolved_external ?? 0;
+  /** Auto-generated docstring. */
   const excludedImports = (analysis as AnalysisRow).imports_excluded ?? 0;
+  /** Auto-generated docstring. */
   const resolvedInternal = (analysis as AnalysisRow).imports_resolved ?? 0;
   const unresolvedImportsCount = Math.max(0, totalImports - resolvedInternal - externalImports - excludedImports);
 

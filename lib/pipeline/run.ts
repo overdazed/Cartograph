@@ -17,6 +17,7 @@ export type SubmitResult = {
   created: boolean;
 };
 
+/** Auto-generated docstring. */
 export async function submitAnalysis(
   repositoryUrl: string,
   organizationId: string,
@@ -30,6 +31,7 @@ export async function submitAnalysis(
   return { analysisId: created.id, created: created.created };
 }
 
+/** Auto-generated docstring. */
 export async function runAnalysis(
   analysisId: string,
   repositoryUrl: string,

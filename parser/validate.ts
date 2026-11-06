@@ -7,15 +7,18 @@ export class ParseResultValidationError extends Error {
   }
 }
 
+/** Auto-generated docstring. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Auto-generated docstring. */
 function requireString(value: unknown, path: string): string {
   if (typeof value !== "string") throw new ParseResultValidationError(`${path} must be a string`);
   return value;
 }
 
+/** Auto-generated docstring. */
 function requireNumber(value: unknown, path: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new ParseResultValidationError(`${path} must be a finite number`);
@@ -23,11 +26,13 @@ function requireNumber(value: unknown, path: string): number {
   return value;
 }
 
+/** Auto-generated docstring. */
 function requireBoolean(value: unknown, path: string): boolean {
   if (typeof value !== "boolean") throw new ParseResultValidationError(`${path} must be a boolean`);
   return value;
 }
 
+/** Auto-generated docstring. */
 function validateFileRecord(value: unknown, path: string): FileRecord {
   if (!isRecord(value)) throw new ParseResultValidationError(`${path} must be an object`);
   return {
@@ -42,6 +47,7 @@ function validateFileRecord(value: unknown, path: string): FileRecord {
   };
 }
 
+/** Auto-generated docstring. */
 function validateEdge(value: unknown, path: string): Edge {
   if (!isRecord(value)) throw new ParseResultValidationError(`${path} must be an object`);
   const kind = requireString(value.kind, `${path}.kind`);
@@ -56,6 +62,7 @@ function validateEdge(value: unknown, path: string): Edge {
   };
 }
 
+/** Auto-generated docstring. */
 function validateSkipped(value: unknown, path: string): SkippedFile {
   if (!isRecord(value)) throw new ParseResultValidationError(`${path} must be an object`);
   return {
@@ -64,6 +71,7 @@ function validateSkipped(value: unknown, path: string): SkippedFile {
   };
 }
 
+/** Auto-generated docstring. */
 function validateUnresolved(value: unknown, path: string): UnresolvedImport {
   if (!isRecord(value)) throw new ParseResultValidationError(`${path} must be an object`);
   const kind = requireString(value.kind, `${path}.kind`);
@@ -78,6 +86,7 @@ function validateUnresolved(value: unknown, path: string): UnresolvedImport {
   };
 }
 
+/** Auto-generated docstring. */
 function validateCoverage(value: unknown): Coverage {
   if (!isRecord(value)) throw new ParseResultValidationError("coverage must be an object");
   if (!Array.isArray(value.unresolvedImports)) {
@@ -97,6 +106,7 @@ function validateCoverage(value: unknown): Coverage {
   };
 }
 
+/** Auto-generated docstring. */
 function validateRoute(value: unknown, path: string): Route {
   if (!isRecord(value)) throw new ParseResultValidationError(`${path} must be an object`);
   return {
@@ -105,6 +115,7 @@ function validateRoute(value: unknown, path: string): Route {
     filePath: requireString(value.filePath, `${path}.filePath`),
   };
 }
+/** Auto-generated docstring. */
 export function validateParseResult(input: unknown): ParseResult {
   if (!isRecord(input)) throw new ParseResultValidationError("result must be an object");
   if (input.version !== 3) {

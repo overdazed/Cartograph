@@ -14,21 +14,26 @@ export interface FrameworkAdapter {
   routes(filePath: string, content: string): Route[];
 }
 
+/** Auto-generated docstring. */
 function testEntryReason(filePath: string): string | null {
+  /** Auto-generated docstring. */
   const base = (filePath.split("/").pop() ?? "").toLowerCase();
   if (/\.(test|spec)\./i.test(base)) return "reached by the test runner";
   if (/(^|\/)(__tests?__|tests?)(\/|$)/i.test(filePath)) return "reached by the test runner";
   return null;
 }
 
+/** Auto-generated docstring. */
 function commonEntryReason(filePath: string): string | null {
   const t = testEntryReason(filePath);
   if (t) return t;
+  /** Auto-generated docstring. */
   const base = (filePath.split("/").pop() ?? "").toLowerCase();
   if (/\.(config|rc)(\.[a-z0-9]+)?$/i.test(base)) return "config file";
   if (base.startsWith(".") && base.includes("rc")) return "config file";
   return null;
 }
+/** Auto-generated docstring. */
 function readPackageJson(dirPath: string): Record<string, unknown> | null {
   try {
     const raw = fs.readFileSync(path.join(dirPath, "package.json"), "utf8");
@@ -38,6 +43,7 @@ function readPackageJson(dirPath: string): Record<string, unknown> | null {
   }
 }
 
+/** Auto-generated docstring. */
 function depsOf(pkg: Record<string, unknown> | null): Record<string, string> {
   if (!pkg) return {};
   return {
@@ -55,6 +61,7 @@ export const fallbackAdapter: FrameworkAdapter = {
   },
   role: (filePath: string, content?: string) => {
     const p = filePath.toLowerCase();
+    /** Auto-generated docstring. */
     const base = (filePath.split("/").pop() ?? "").toLowerCase();
     const name = base.replace(/\.[^.]+$/, "");
     if (name === "middleware") return "Middleware";
@@ -81,6 +88,7 @@ export const nextAdapter: FrameworkAdapter = {
     const c = commonEntryReason(filePath);
     if (c) return c;
     const p = filePath.toLowerCase();
+    /** Auto-generated docstring. */
     const base = (filePath.split("/").pop() ?? "").toLowerCase();
     const name = base.replace(/\.[^.]+$/, "");
     if (name === "middleware" && (/^middleware\./.test(base) || /^src\/middleware\./.test(p))) {
@@ -100,6 +108,7 @@ export const nextAdapter: FrameworkAdapter = {
   },
   role: (filePath: string, content?: string) => {
     const p = filePath.toLowerCase();
+    /** Auto-generated docstring. */
     const base = (filePath.split("/").pop() ?? "").toLowerCase();
     const name = base.replace(/\.[^.]+$/, "");
     if (/(^|\/)app(\/|$)/.test(p)) {
@@ -124,6 +133,7 @@ export const nextAdapter: FrameworkAdapter = {
   },
   routes: (filePath: string, content: string): Route[] => {
     const p = filePath.toLowerCase();
+    /** Auto-generated docstring. */
     const base = (filePath.split("/").pop() ?? "").toLowerCase();
     const name = base.replace(/\.[^.]+$/, "");
     if (name !== "route" || !/(^|\/)app(\/|$)/.test(p)) return [];
@@ -167,6 +177,7 @@ export const nestAdapter: FrameworkAdapter = {
   extraExcludedDirs: () => [],
   entryPoint: (filePath: string) => commonEntryReason(filePath),
   role: (filePath: string) => {
+    /** Auto-generated docstring. */
     const base = (filePath.split("/").pop() ?? "").toLowerCase();
     if (/\.controller\./i.test(base)) return "Controllers";
     if (/\.service\./i.test(base)) return "Services";
@@ -175,6 +186,7 @@ export const nestAdapter: FrameworkAdapter = {
     return null;
   },
   routes: (filePath: string, content: string): Route[] => {
+    /** Auto-generated docstring. */
     const base = (filePath.split("/").pop() ?? "").toLowerCase();
     if (!/\.controller\./i.test(base)) return [];
     const project = new Project({ useInMemoryFileSystem: true, skipAddingFilesFromTsConfig: true });
@@ -244,6 +256,7 @@ export const docusaurusAdapter: FrameworkAdapter = {
     const c = commonEntryReason(filePath);
     if (c) return c;
     const p = filePath.toLowerCase();
+    /** Auto-generated docstring. */
     const base = (filePath.split("/").pop() ?? "").toLowerCase();
     const name = base.replace(/\.[^.]+$/, "");
     if (base.startsWith("docusaurus.config.")) return "Docusaurus config";
@@ -258,6 +271,7 @@ export const docusaurusAdapter: FrameworkAdapter = {
 
 const adapters: FrameworkAdapter[] = [nextAdapter, nestAdapter, docusaurusAdapter, reactAdapter, fallbackAdapter];
 
+/** Auto-generated docstring. */
 export function selectAdapter(rootPath: string): FrameworkAdapter {
   for (const adapter of adapters) {
     if (adapter.detect(rootPath)) return adapter;
@@ -265,10 +279,12 @@ export function selectAdapter(rootPath: string): FrameworkAdapter {
   return fallbackAdapter;
 }
 
+/** Auto-generated docstring. */
 export function registerAdapter(adapter: FrameworkAdapter): void {
   adapters.splice(adapters.length - 1, 0, adapter);
 }
 
+/** Auto-generated docstring. */
 export function adapterForFile(root: string, relPath: string): FrameworkAdapter {
   let dir = path.dirname(path.join(root, relPath));
   while (true) {

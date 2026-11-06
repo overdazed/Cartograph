@@ -12,6 +12,7 @@ export type ExtractedImport = {
   reason: string;
 };
 
+/** Auto-generated docstring. */
 export function extractImports(
   root: string,
   fromPath: string,
@@ -57,6 +58,7 @@ export function extractImports(
     if (call.getExpression().getKind() !== SyntaxKind.ImportKeyword) continue;
     const arg = call.getArguments()[0];
     if (!arg || !arg.isKind(SyntaxKind.StringLiteral)) continue;
+    /** Auto-generated docstring. */
     const specifier = (arg as { getLiteralValue(): string }).getLiteralValue();
     const result = resolveImport(root, fromPath, specifier);
     results.push({

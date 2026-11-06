@@ -15,6 +15,7 @@ export type Insight = {
 
 const TOO_LONG_LINES = 1000;
 
+/** Auto-generated docstring. */
 function kosarajuSCCs(nodes: string[], adj: Map<string, string[]>): string[][] {
   const visited = new Set<string>();
   const order: string[] = [];
@@ -70,6 +71,7 @@ function kosarajuSCCs(nodes: string[], adj: Map<string, string[]>): string[][] {
   return sccs;
 }
 
+/** Auto-generated docstring. */
 function findCycleInSCC(sccNodes: string[], adj: Map<string, string[]>): string[] | null {
   const set = new Set(sccNodes);
   const start = sccNodes[0];
@@ -104,6 +106,7 @@ function findCycleInSCC(sccNodes: string[], adj: Map<string, string[]>): string[
   return null;
 }
 
+/** Auto-generated docstring. */
 function findCycles(files: FileRecord[], edges: ParseResult["edges"]): string[][] {
   const nodes = files.map((f) => f.path);
   const nodeSet = new Set(nodes);
@@ -129,6 +132,7 @@ function findCycles(files: FileRecord[], edges: ParseResult["edges"]): string[][
   return cycles;
 }
 
+/** Auto-generated docstring. */
 export function computeInsights(data: ParseResult): Insight[] {
   const files = data.files;
   const edges = data.edges;

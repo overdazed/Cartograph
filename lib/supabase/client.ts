@@ -6,6 +6,7 @@ import { useAuth } from "@clerk/nextjs";
 
 import { getClientEnv } from "@/lib/env";
 
+/** Auto-generated docstring. */
 export function useSupabaseClient() {
   const { getToken } = useAuth();
   const env = getClientEnv();

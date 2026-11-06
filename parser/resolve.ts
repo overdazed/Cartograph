@@ -14,6 +14,7 @@ export type ResolveResult = {
 
 const optionsCache = new Map<string, ts.CompilerOptions>();
 
+/** Auto-generated docstring. */
 function findNearestConfig(startDir: string, root: string): string | null {
   let dir = startDir;
   while (true) {
@@ -30,6 +31,7 @@ function findNearestConfig(startDir: string, root: string): string | null {
   return null;
 }
 
+/** Auto-generated docstring. */
 function loadOptions(root: string, fromAbs: string): ts.CompilerOptions {
   const configPath = findNearestConfig(path.dirname(fromAbs), root);
   const cacheKey = configPath ?? "__default__";
@@ -54,6 +56,7 @@ function loadOptions(root: string, fromAbs: string): ts.CompilerOptions {
   return options;
 }
 
+/** Auto-generated docstring. */
 function toRootRelative(root: string, absPath: string): string | null {
   const rel = path.relative(root, absPath);
   if (rel === "") return ".";
@@ -61,14 +64,17 @@ function toRootRelative(root: string, absPath: string): string | null {
   return rel.split(path.sep).join("/");
 }
 
+/** Auto-generated docstring. */
 function isExcludedRel(rel: string): boolean {
   return rel.split("/").some((part) => EXCLUDED_DIRS.has(part) || part.startsWith("."));
 }
 
+/** Auto-generated docstring. */
 function isDeclaration(rel: string): boolean {
   return rel.endsWith(".d.ts");
 }
 
+/** Auto-generated docstring. */
 function hasPathAlias(options: ts.CompilerOptions, specifier: string): boolean {
   const paths = options.paths;
   if (!paths) return false;
@@ -89,6 +95,7 @@ function hasPathAlias(options: ts.CompilerOptions, specifier: string): boolean {
   return false;
 }
 
+/** Auto-generated docstring. */
 export function resolveImport(root: string, fromRel: string, specifier: string): ResolveResult {
   const clean = specifier.trim().split("?")[0].split("#")[0];
   if (/^https?:\/\//.test(clean) || /^\/\//.test(clean)) {

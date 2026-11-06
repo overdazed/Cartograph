@@ -22,11 +22,13 @@ type Row = {
 
 const STATUSES = ["parsing", "queued", "complete", "failed", "pending"] as const;
 
+/** Auto-generated docstring. */
 function isStale(status: string, updatedAt: string): boolean {
   if (status === "complete" || status === "failed") return false;
   return Date.now() - new Date(updatedAt).getTime() > 5 * 60 * 1000;
 }
 
+/** Auto-generated docstring. */
 export function DashboardAnalyses({ initialRows }: { initialRows: Row[] }) {
   const supabase = useSupabaseClient();
   const router = useRouter();

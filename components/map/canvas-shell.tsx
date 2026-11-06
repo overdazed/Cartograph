@@ -20,6 +20,7 @@ const CATEGORY_COLORS = [
 
 type CanvasShellProps = { data: ParseResult; analysisId?: string };
 
+/** Auto-generated docstring. */
 export function CanvasShell({ data, analysisId }: CanvasShellProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);

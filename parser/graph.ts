@@ -2,6 +2,7 @@ import type { Edge } from "./types.ts";
 
 export type FanStats = { fanIn: number; fanOut: number };
 
+/** Auto-generated docstring. */
 export function computeFanInOut(
   files: { path: string }[],
   edges: Edge[],

@@ -8,6 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseWriterClient } from "@/lib/supabase/writer";
 import { submitAnalysis, runAnalysis } from "../lib/pipeline/run.ts";
 
+/** Auto-generated docstring. */
 export async function rerunAnalysis(analysisId: string): Promise<void> {
   const { orgId } = await auth();
   if (!orgId) throw new Error("No organization selected");
@@ -44,6 +45,7 @@ export async function rerunAnalysis(analysisId: string): Promise<void> {
   redirect(`/analyses/${analysisId}`);
 }
 
+/** Auto-generated docstring. */
 export async function submitRepository(formData: FormData): Promise<void> {
   const repositoryUrl = String(formData.get("repositoryUrl") ?? "").trim();
   if (!repositoryUrl) return;

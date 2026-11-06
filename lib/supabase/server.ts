@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { getServerEnv } from "@/lib/env";
 
+/** Auto-generated docstring. */
 export function createSupabaseServerClient() {
   const env = getServerEnv();
 

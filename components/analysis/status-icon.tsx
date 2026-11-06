@@ -1,3 +1,4 @@
+/** Auto-generated docstring. */
 export function StatusIcon({ status }: { status: string }) {
   const common = "h-3.5 w-3.5";
   switch (status) {

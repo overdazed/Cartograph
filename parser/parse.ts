@@ -9,12 +9,15 @@ import { selectAdapter, adapterForFile } from "./adapters.ts";
 import type { FrameworkAdapter } from "./adapters.ts";
 import type { Edge, EdgeKind, FileRecord, ParseResult, SkippedFile } from "./types.ts";
 
+/** Auto-generated docstring. */
 function countLines(content: string): number {
   if (content === "") return 0;
+  /** Auto-generated docstring. */
   const newlines = (content.match(/\n/g) ?? []).length;
   return content.endsWith("\n") ? newlines : newlines + 1;
 }
 
+/** Auto-generated docstring. */
 export function parseRepository(rootPath: string): ParseResult {
   const root = path.resolve(rootPath);
   const adapter = selectAdapter(root);
@@ -39,6 +42,7 @@ export function parseRepository(rootPath: string): ParseResult {
   }
 
   const fileRecords = new Map<string, FileRecord>();
+  /** Auto-generated docstring. */
   const packageRootFor = (rel: string): string => {
     let dir = path.dirname(path.join(root, rel));
     while (true) {
@@ -52,6 +56,7 @@ export function parseRepository(rootPath: string): ParseResult {
   };
 
   const adapterCache = new Map<string, FrameworkAdapter>();
+  /** Auto-generated docstring. */
   const adapterFor = (rel: string): FrameworkAdapter => {
     const dir = path.dirname(rel);
     const cached = adapterCache.get(dir);
@@ -90,6 +95,7 @@ export function parseRepository(rootPath: string): ParseResult {
   let reexportsFound = 0;
   let reexportsResolved = 0;
 
+  /** Auto-generated docstring. */
   function addEdge(from: string, to: string, kind: EdgeKind, typeOnly: boolean): void {
     const key = `${from}\u0000${to}\u0000${kind}\u0000${typeOnly}`;
     if (edgeKeys.has(key)) return;

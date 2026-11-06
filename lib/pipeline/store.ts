@@ -5,6 +5,7 @@ import { createSupabaseWriterClient } from "../supabase/writer.ts";
 
 const CHUNK = 500;
 
+/** Auto-generated docstring. */
 export function normalizeRepositoryUrl(repositoryUrl: string): string {
   const cleaned = repositoryUrl.trim().replace(/\.git$/, "").replace(/\/$/, "");
   const match = cleaned.match(/github\.com[/:]([^/]+)\/([^/]+)/i);
@@ -12,6 +13,7 @@ export function normalizeRepositoryUrl(repositoryUrl: string): string {
   return `https://github.com/${match[1].toLowerCase()}/${match[2].toLowerCase()}`;
 }
 
+/** Auto-generated docstring. */
 async function chunkInsert(
   table: string,
   rows: Record<string, unknown>[],
@@ -24,12 +26,14 @@ async function chunkInsert(
   }
 }
 
+/** Auto-generated docstring. */
 export async function findOrCreateProject(
   organizationId: string,
   repositoryUrl: string,
 ): Promise<string> {
   const url = normalizeRepositoryUrl(repositoryUrl);
   const client = createSupabaseWriterClient();
+  /** Auto-generated docstring. */
   const lookup = async () => {
     const { data, error } = await client
       .from("projects")
@@ -57,6 +61,7 @@ export async function findOrCreateProject(
   return created.id as string;
 }
 
+/** Auto-generated docstring. */
 export async function findAnalysisByProject(projectId: string): Promise<string | null> {
   const client = createSupabaseWriterClient();
   const { data, error } = await client
@@ -68,6 +73,7 @@ export async function findAnalysisByProject(projectId: string): Promise<string |
   return (data?.id as string) ?? null;
 }
 
+/** Auto-generated docstring. */
 export async function createAnalysis(
   organizationId: string,
   projectId: string,
@@ -96,6 +102,7 @@ export async function createAnalysis(
   return { id: data.id as string, created: true };
 }
 
+/** Auto-generated docstring. */
 export async function setStage(
   analysisId: string,
   stage: string,
@@ -109,6 +116,7 @@ export async function setStage(
   if (error) throw new Error(`stage update failed: ${error.message}`);
 }
 
+/** Auto-generated docstring. */
 export async function setFailed(
   analysisId: string,
   stage: string,
@@ -128,6 +136,7 @@ export async function setFailed(
   if (updateError) throw new Error(`failed update failed: ${updateError.message}`);
 }
 
+/** Auto-generated docstring. */
 export async function setComplete(
   analysisId: string,
   commitSha: string,
@@ -147,6 +156,7 @@ export async function setComplete(
   if (error) throw new Error(`complete update failed: ${error.message}`);
 }
 
+/** Auto-generated docstring. */
 export async function storeParseResult(
   analysisId: string,
   organizationId: string,
@@ -243,6 +253,7 @@ export async function storeParseResult(
   if (edgeError) throw new Error(`edge insert failed: ${edgeError.message}`);
 }
 
+/** Auto-generated docstring. */
 export async function getAnalysisSummary(analysisId: string): Promise<{ files: number; edges: number }> {
   const client = createSupabaseWriterClient();
   const { count: fileCount, error: fileError } = await client

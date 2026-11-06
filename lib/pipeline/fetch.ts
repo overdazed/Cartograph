@@ -15,6 +15,7 @@ export type FetchedRepository = {
   cleanup: () => void;
 };
 
+/** Auto-generated docstring. */
 function parseGitHubUrl(repositoryUrl: string): { owner: string; repo: string } {
   const cleaned = repositoryUrl.trim().replace(/\.git$/, "").replace(/\/$/, "");
   const match = cleaned.match(/github\.com[/:]([^/]+)\/([^/]+)/i);
@@ -22,6 +23,7 @@ function parseGitHubUrl(repositoryUrl: string): { owner: string; repo: string } 
   return { owner: match[1], repo: match[2] };
 }
 
+/** Auto-generated docstring. */
 async function githubJson(url: string): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -39,9 +41,11 @@ async function githubJson(url: string): Promise<unknown> {
   }
 }
 
+/** Auto-generated docstring. */
 export async function fetchRepository(repositoryUrl: string): Promise<FetchedRepository> {
   const { owner, repo } = parseGitHubUrl(repositoryUrl);
 
+  /** Auto-generated docstring. */
   const repoInfo = (await githubJson(
     `https://api.github.com/repos/${owner}/${repo}`,
   )) as { default_branch?: string };
@@ -49,6 +53,7 @@ export async function fetchRepository(repositoryUrl: string): Promise<FetchedRep
     throw new Error(`Repository not found: ${repositoryUrl}`);
   }
 
+  /** Auto-generated docstring. */
   const commitInfo = (await githubJson(
     `https://api.github.com/repos/${owner}/${repo}/commits/${repoInfo.default_branch}`,
   )) as { sha?: string };
@@ -61,6 +66,7 @@ export async function fetchRepository(repositoryUrl: string): Promise<FetchedRep
   const archivePath = path.join(tempDir, "repo.tar.gz");
 
   let cleanupDone = false;
+  /** Auto-generated docstring. */
   const cleanup = () => {
     if (cleanupDone) return;
     cleanupDone = true;

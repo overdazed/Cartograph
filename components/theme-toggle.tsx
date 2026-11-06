@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
 
+/** Auto-generated docstring. */
 function initialTheme(): Theme {
   if (typeof window === "undefined") return "light";
   const stored = localStorage.getItem("theme");
@@ -11,6 +12,7 @@ function initialTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+/** Auto-generated docstring. */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(() => initialTheme());
 

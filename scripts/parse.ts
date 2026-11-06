@@ -2,6 +2,7 @@ import fs from "node:fs";
 
 import { parseRepository } from "../parser/index.ts";
 
+/** Auto-generated docstring. */
 function parseArgs(argv: string[]): { dir: string; out: string | null } {
   let dir = "";
   let out: string | null = null;
