@@ -19,6 +19,12 @@ join public.projects retained
   on retained.organization_id = p.organization_id
  and retained.repository_url = p.repository_url
  and retained.id < p.id
+ and not exists (
+   select 1 from public.projects r
+   where r.organization_id = retained.organization_id
+     and r.repository_url = retained.repository_url
+     and r.id < retained.id
+ )
 where public.analyses.project_id = p.id;
 
 delete from public.projects p

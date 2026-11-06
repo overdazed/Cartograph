@@ -629,7 +629,7 @@ const connectedNodes = useMemo(() => {
 }
 
 /** Auto-generated docstring. */
-export function MapCanvas({ data, selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
+export function MapCanvas({ data, selected, onSelect, hovered, onHover, activeCategory = null }: MapCanvasProps) {
   return (
     <ReactFlowProvider>
       <Inner data={data} selected={selected} onSelect={onSelect} hovered={hovered} onHover={onHover} activeCategory={activeCategory} />
