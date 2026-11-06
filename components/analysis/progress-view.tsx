@@ -39,6 +39,7 @@ export function ProgressView({
   const [message, setMessage] = useState(initialMessage ?? "Starting");
   const [status, setStatus] = useState(initialStatus);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
+  const [rerunError, setRerunError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -102,12 +103,24 @@ export function ProgressView({
       {status === "failed" ? (
         <p className="text-sm text-red-600">{initialError ?? "Run failed."}</p>
       ) : null}
+      {rerunError ? <p className="text-sm text-red-600">{rerunError}</p> : null}
       {stale ? <p className="text-sm text-amber-600">Stale: no progress for 5 minutes.</p> : null}
       {status === "complete" || status === "failed" || stale ? (
         <button
           type="button"
           disabled={pending}
-          onClick={() => startTransition(() => rerunAnalysis(analysisId))}
+          onClick={() => startTransition(async () => {
+          setRerunError(null);
+          try {
+            const result = await rerunAnalysis(analysisId);
+            if (result?.error) setRerunError(result.error);
+          } catch (e) {
+            if (e && typeof e === "object" && "digest" in e && String((e as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")) {
+              throw e;
+            }
+            setRerunError(e instanceof Error ? e.message : String(e));
+          }
+        })}
           className="w-fit border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
         >
           {pending ? "Starting…" : "Re-run"}

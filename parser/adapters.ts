@@ -143,8 +143,7 @@ export const nextAdapter: FrameworkAdapter = {
     const methods: string[] = [];
     const httpMethods = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]);
     for (const [exportName] of exported) {
-      const upper = exportName.toUpperCase();
-      if (httpMethods.has(upper)) methods.push(upper);
+      if (httpMethods.has(exportName)) methods.push(exportName);
     }
     if (methods.length === 0) return [];
     const parts = filePath.split("/");

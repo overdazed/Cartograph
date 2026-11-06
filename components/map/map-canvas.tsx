@@ -5,6 +5,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useUpdateNodeInternals,
+  useReactFlow,
   type Node,
   type Edge as RFEdge,
   Position,
@@ -201,16 +202,15 @@ const nodeTypes = { folder: FolderNode };
 /** Auto-generated docstring. */
 function Inner({ data, selected, onSelect, hovered, onHover, activeCategory }: MapCanvasProps) {
   const updateNodeInternals = useUpdateNodeInternals();
+  const { fitView } = useReactFlow();
 
   const surviving = useMemo(() => foldDirectories(data.files), [data]);
   const survivingSet = useMemo(() => new Set(surviving), [surviving]);
   const nodesInfo = useMemo(() => buildFoldedNodes(data.files, surviving), [data, surviving]);
   const labels = useMemo(() => uniqueLabels(nodesInfo.map((n) => ({ id: n.id, dir: n.dir }))), [nodesInfo]);
   const [open, setOpen] = useState<Set<string>>(new Set());
-  const manualOpenRef = useRef<boolean>(false);
   const [visibilityMap, setVisibilityMap] = useState<Map<string, Map<string, "above" | "below" | "visible">>>(new Map());
   const toggle = useCallback((id: string) => {
-      manualOpenRef.current = true;
       setOpen((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -597,6 +597,11 @@ const connectedNodes = useMemo(() => {
   useEffect(() => {
     for (const id of open) updateNodeInternals(id);
   }, [selected, open, visibilityMap, updateNodeInternals]);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => fitView({ padding: 0.1 }));
+    return () => cancelAnimationFrame(raf);
+  }, [open, fitView]);
 
 
   return (

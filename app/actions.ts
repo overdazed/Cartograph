@@ -9,9 +9,9 @@ import { createSupabaseWriterClient } from "@/lib/supabase/writer";
 import { submitAnalysis, runAnalysis } from "../lib/pipeline/run.ts";
 
 /** Auto-generated docstring. */
-export async function rerunAnalysis(analysisId: string): Promise<void> {
+export async function rerunAnalysis(analysisId: string): Promise<{ error?: string }> {
   const { orgId } = await auth();
-  if (!orgId) throw new Error("No organization selected");
+  if (!orgId) return { error: "No organization selected" };
   const supabase = createSupabaseServerClient();
   const { data } = await supabase
     .from("analyses")
@@ -20,7 +20,7 @@ export async function rerunAnalysis(analysisId: string): Promise<void> {
     .eq("organization_id", orgId)
     .maybeSingle();
   const repositoryUrl = data?.repository_url as string | undefined;
-  if (!repositoryUrl) throw new Error("Analysis not found");
+  if (!repositoryUrl) return { error: "Analysis not found" };
 
   const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const writer = createSupabaseWriterClient();
@@ -37,7 +37,7 @@ export async function rerunAnalysis(analysisId: string): Promise<void> {
     .or(`status.in.(complete,failed),and(status.eq.parsing,updated_at.lt.${cutoff})`)
     .select("id")
     .maybeSingle();
-  if (error || !updated) throw new Error("Analysis not claimable");
+  if (error || !updated) return { error: "Analysis not claimable" };
 
   after(async () => {
     await runAnalysis(analysisId, repositoryUrl, orgId);

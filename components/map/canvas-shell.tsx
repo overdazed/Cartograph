@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import type { ParseResult } from "@/parser/types";
 import { MapCanvas } from "@/components/map/map-canvas";
 import { DetailPane } from "@/components/map/detail-pane";
-import { ALL_FRAMEWORK_CATEGORIES } from "@/lib/rail-taxonomy";
+import { ALL_FRAMEWORK_CATEGORIES, railCategoriesFor } from "@/lib/rail-taxonomy";
 
 const CATEGORY_COLORS = [
   "#3b82f6",
@@ -37,7 +37,9 @@ export function CanvasShell({ data, analysisId }: CanvasShellProps) {
   const [centreView, setCentreView] = useState<"map" | "routes">("map");
 
   const categories = useMemo(() => {
-    const master = ALL_FRAMEWORK_CATEGORIES;
+    const taxonomy = railCategoriesFor(data.adapter);
+    const foundRoles = [...new Set(data.files.map((f) => f.role).filter((r): r is string => Boolean(r)))];
+    const master = [...new Set([...taxonomy, ...foundRoles, "Unclassified"])];
     const counts = new Map<string, number>();
     for (const file of data.files) {
       let key: string | null = file.role;

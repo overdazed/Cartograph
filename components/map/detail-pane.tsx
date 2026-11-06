@@ -318,8 +318,12 @@ export function DetailPane({
                   onClick={() => startTransition(async () => {
                     setRerunError(null);
                     try {
-                      await rerunAnalysis(analysisId);
+                      const result = await rerunAnalysis(analysisId);
+                      if (result?.error) setRerunError(result.error);
                     } catch (e) {
+                      if (e && typeof e === "object" && "digest" in e && String((e as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")) {
+                        throw e;
+                      }
                       setRerunError(e instanceof Error ? e.message : String(e));
                     }
                   })}
