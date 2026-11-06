@@ -289,6 +289,10 @@ function Inner({ data, selected, onSelect, hovered, onHover, activeCategory }: M
   }, [selected, data.files, data.edges, survivingSet]);
 
   const roleByPath = useMemo(() => new Map(data.files.map((f) => [f.path, f.role])), [data]);
+  const fileStats = useMemo(
+    () => Object.fromEntries(data.files.map((f) => [f.path, { fanIn: f.fanIn, fanOut: f.fanOut }])),
+    [data.files],
+  );
   const connectedFiles = useMemo(() => {
     const set = new Set<string>();
     if (!selected) return set;
@@ -421,7 +425,6 @@ const connectedNodes = useMemo(() => {
         width = Math.max(200, longest * 7 + 60);
         height = Math.min(MAX_PANEL_HEIGHT, 20 + visibleRows * 14 + (n.files.length > MAX_ROWS ? 14 : 0) + 2);
       }
-      const fileStats = Object.fromEntries(data.files.map((f) => [f.path, { fanIn: f.fanIn, fanOut: f.fanOut }]));
       const categoryMatchCount = activeCategory
         ? n.files.filter((p) => {
             const role = roleByPath.get(p) ?? null;
@@ -470,7 +473,7 @@ const connectedNodes = useMemo(() => {
         height,
       };
     });
-  }, [nodesInfo, open, labels, toggle, selectFile, data.files, updateNodeInternals, onHover, onSelect, activeCategory, roleByPath]);
+  }, [nodesInfo, open, labels, toggle, selectFile, fileStats, updateNodeInternals, onHover, onSelect, activeCategory, roleByPath]);
 
   const baseEdges: RFEdge[] = useMemo(() => {
     const seen = new Set<string>();
