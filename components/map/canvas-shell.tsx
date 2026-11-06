@@ -24,10 +24,11 @@ export function CanvasShell({ data, analysisId }: CanvasShellProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"structure" | "explanation">("structure");
+  const graphRelevantTotal = data.coverage.resolvedInternal + data.coverage.unresolved;
   const coveragePercent =
-    data.coverage.totalImports === 0
+    graphRelevantTotal === 0
       ? 100
-      : (data.coverage.resolvedInternal / data.coverage.totalImports) * 100;
+      : (data.coverage.resolvedInternal / graphRelevantTotal) * 100;
   const showBanner = data.coverage.unresolved > 0;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -86,7 +87,7 @@ export function CanvasShell({ data, analysisId }: CanvasShellProps) {
               onClick={() => setBannerCollapsed((v) => !v)}
             >
               {bannerCollapsed ? "Partial graph" : "Partial graph —"}{" "}
-              {coveragePercent.toFixed(0)}% of imports resolved
+              {coveragePercent.toFixed(0)}% of graph-relevant imports resolved
               {bannerCollapsed ? "" : ` (${data.coverage.unresolved} unresolved)`}
             </button>
           </div>

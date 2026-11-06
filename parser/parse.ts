@@ -39,6 +39,18 @@ export function parseRepository(rootPath: string): ParseResult {
   }
 
   const fileRecords = new Map<string, FileRecord>();
+  const packageRootFor = (rel: string): string => {
+    let dir = path.dirname(path.join(root, rel));
+    while (true) {
+      if (fs.existsSync(path.join(dir, "package.json"))) return dir;
+      if (dir === root) break;
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+    return root;
+  };
+
   const adapterCache = new Map<string, FrameworkAdapter>();
   const adapterFor = (rel: string): FrameworkAdapter => {
     const dir = path.dirname(rel);
@@ -52,13 +64,14 @@ export function parseRepository(rootPath: string): ParseResult {
   for (const entry of parsed) {
     const folder = path.dirname(entry.path).split(path.sep).join("/");
     const fileAdapter = adapterFor(entry.path);
+    const pkgRel = path.relative(packageRootFor(entry.path), path.join(root, entry.path)).split(path.sep).join("/") || entry.path;
     fileRecords.set(entry.path, {
       path: entry.path,
       folder: folder === "." ? "." : folder,
       lines: countLines(entry.content),
       hash: crypto.createHash("sha256").update(entry.content).digest("hex"),
-      role: fileAdapter.role(entry.path, entry.content),
-      entryReason: fileAdapter.entryPoint(entry.path),
+      role: fileAdapter.role(pkgRel, entry.content),
+      entryReason: fileAdapter.entryPoint(pkgRel),
       fanIn: 0,
       fanOut: 0,
     });

@@ -65,7 +65,7 @@ export function ProgressView({
               if (data.stage_message !== undefined) setMessage(data.stage_message ?? "");
               if (data.status) setStatus(data.status);
               if (data.updated_at) setUpdatedAt(data.updated_at);
-              if (data.status === "complete" || data.stage === "complete") router.refresh();
+              if (data.status === "complete" || data.status === "failed" || data.stage === "complete" || data.stage === "failed") router.refresh();
             });
         }
       });
